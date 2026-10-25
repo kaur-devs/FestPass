@@ -22,6 +22,8 @@ FestPass is a ticketing and check-in platform for college events. Organizers cre
 | Volunteer | Scan and validate tickets at the gate for events they are assigned to             |
 | Admin     | Manage organizers and platform-wide settings                                      |
 
+Only Admin is stored on the user. The other roles come from relationships: anyone can book as a student, a user is an organizer for the organizations they belong to, and a volunteer for the events they are assigned to. One person can be a student at one event and a volunteer at another. See [Database schema](features/database.md).
+
 ## Functional requirements
 
 1. Users sign up with email or Google and are assigned a role.

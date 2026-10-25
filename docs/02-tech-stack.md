@@ -35,6 +35,17 @@ See [ADR-0001](decisions/0001-monorepo.md).
 
 See [ADR-0002](decisions/0002-separate-express-api.md).
 
+## Authentication
+
+| Tool                 | Why                                                                     | Alternatives considered           |
+| -------------------- | ----------------------------------------------------------------------- | --------------------------------- |
+| `@node-rs/argon2`    | argon2id password hashing with prebuilt binaries (no native build step) | bcrypt, `argon2` (needs node-gyp) |
+| `jose`               | Standards-compliant JWT signing and verification, no dependencies       | `jsonwebtoken`                    |
+| Arctic               | Small OAuth 2.0 client with PKCE helpers for Google                     | Passport, Auth.js                 |
+| `express-rate-limit` | Per-route limits on sign-in, sign-up and email endpoints                | Custom middleware                 |
+
+Auth.js and Passport were rejected because the session model (rotating refresh tokens, reuse detection) is a core part of this project and should be implemented and explained directly. See [ADR-0006](decisions/0006-session-tokens.md).
+
 ## Data
 
 | Tool       | Why                                                                            | Alternatives considered |
