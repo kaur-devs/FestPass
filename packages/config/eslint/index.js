@@ -4,7 +4,14 @@ import globals from 'globals';
 import tseslint from 'typescript-eslint';
 
 const ignores = {
-  ignores: ['**/dist/**', '**/.next/**', '**/.turbo/**', '**/coverage/**', '**/next-env.d.ts'],
+  ignores: [
+    '**/dist/**',
+    '**/.next/**',
+    '**/.turbo/**',
+    '**/coverage/**',
+    '**/next-env.d.ts',
+    '**/generated/**',
+  ],
 };
 
 /** @param {{ tsconfigRootDir: string }} options */

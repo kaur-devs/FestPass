@@ -15,8 +15,11 @@
     "check": "turbo run lint typecheck test build",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
-    "db:up": "docker compose up -d",
+    "db:up": "docker compose up -d --wait",
     "db:down": "docker compose down",
+    "db:migrate": "pnpm --filter @festpass/db migrate",
+    "db:seed": "pnpm --filter @festpass/db seed",
+    "db:studio": "pnpm --filter @festpass/db studio",
     "prepare": "husky"
   },
   "devDependencies": {

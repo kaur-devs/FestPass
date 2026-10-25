@@ -1,0 +1,358 @@
+generator client {
+  provider            = "prisma-client"
+  output              = "../src/generated/prisma"
+  importFileExtension = ""
+  previewFeatures     = ["partialIndexes"]
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum PlatformRole {
+  USER
+  ADMIN
+
+  @@map("platform_role")
+}
+
+enum OrganizationRole {
+  OWNER
+  ORGANIZER
+
+  @@map("organization_role")
+}
+
+enum EventStatus {
+  DRAFT
+  PUBLISHED
+  CANCELLED
+
+  @@map("event_status")
+}
+
+enum SeatingType {
+  GENERAL_ADMISSION
+  RESERVED
+
+  @@map("seating_type")
+}
+
+enum OrderStatus {
+  PENDING
+  PAID
+  EXPIRED
+  FAILED
+  REFUND_PENDING
+  REFUNDED
+
+  @@map("order_status")
+}
+
+enum TicketStatus {
+  ACTIVE
+  CANCELLED
+
+  @@map("ticket_status")
+}
+
+enum AuthProvider {
+  GOOGLE
+
+  @@map("auth_provider")
+}
+
+enum TokenPurpose {
+  EMAIL_VERIFICATION
+  PASSWORD_RESET
+
+  @@map("token_purpose")
+}
+
+model User {
+  id              String       @id @default(uuid(7)) @db.Uuid
+  email           String       @unique
+  name            String
+  role            PlatformRole @default(USER)
+  passwordHash    String?      @map("password_hash")
+  emailVerifiedAt DateTime?    @map("email_verified_at") @db.Timestamptz(3)
+  createdAt       DateTime     @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt       DateTime     @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  accounts           Account[]
+  sessions           Session[]
+  verificationTokens VerificationToken[]
+  memberships        OrganizationMember[]
+  volunteering       EventVolunteer[]
+  orders             Order[]
+  tickets            Ticket[]
+  checkIns           CheckIn[]
+
+  @@map("users")
+}
+
+model Account {
+  id                String       @id @default(uuid(7)) @db.Uuid
+  userId            String       @map("user_id") @db.Uuid
+  provider          AuthProvider
+  providerAccountId String       @map("provider_account_id")
+  createdAt         DateTime     @default(now()) @map("created_at") @db.Timestamptz(3)
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+  @@unique([userId, provider])
+  @@map("accounts")
+}
+
+model Session {
+  id         String    @id @default(uuid(7)) @db.Uuid
+  userId     String    @map("user_id") @db.Uuid
+  userAgent  String?   @map("user_agent")
+  ipAddress  String?   @map("ip_address")
+  expiresAt  DateTime  @map("expires_at") @db.Timestamptz(3)
+  revokedAt  DateTime? @map("revoked_at") @db.Timestamptz(3)
+  createdAt  DateTime  @default(now()) @map("created_at") @db.Timestamptz(3)
+  lastUsedAt DateTime  @default(now()) @map("last_used_at") @db.Timestamptz(3)
+
+  user          User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  refreshTokens RefreshToken[]
+
+  @@index([userId])
+  @@map("sessions")
+}
+
+model RefreshToken {
+  id        String    @id @default(uuid(7)) @db.Uuid
+  sessionId String    @map("session_id") @db.Uuid
+  tokenHash String    @unique @map("token_hash")
+  expiresAt DateTime  @map("expires_at") @db.Timestamptz(3)
+  usedAt    DateTime? @map("used_at") @db.Timestamptz(3)
+  createdAt DateTime  @default(now()) @map("created_at") @db.Timestamptz(3)
+
+  session Session @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+
+  @@index([sessionId])
+  @@map("refresh_tokens")
+}
+
+model VerificationToken {
+  id        String       @id @default(uuid(7)) @db.Uuid
+  userId    String       @map("user_id") @db.Uuid
+  purpose   TokenPurpose
+  tokenHash String       @unique @map("token_hash")
+  expiresAt DateTime     @map("expires_at") @db.Timestamptz(3)
+  usedAt    DateTime?    @map("used_at") @db.Timestamptz(3)
+  createdAt DateTime     @default(now()) @map("created_at") @db.Timestamptz(3)
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, purpose])
+  @@map("verification_tokens")
+}
+
+model Organization {
+  id        String   @id @default(uuid(7)) @db.Uuid
+  name      String
+  slug      String   @unique
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  members OrganizationMember[]
+  events  Event[]
+
+  @@map("organizations")
+}
+
+model OrganizationMember {
+  organizationId String           @map("organization_id") @db.Uuid
+  userId         String           @map("user_id") @db.Uuid
+  role           OrganizationRole
+  createdAt      DateTime         @default(now()) @map("created_at") @db.Timestamptz(3)
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  user         User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@id([organizationId, userId])
+  @@index([userId])
+  @@map("organization_members")
+}
+
+model Event {
+  id             String      @id @default(uuid(7)) @db.Uuid
+  organizationId String      @map("organization_id") @db.Uuid
+  slug           String      @unique
+  title          String
+  description    String      @default("")
+  venue          String
+  timezone       String      @default("Asia/Kolkata")
+  startsAt       DateTime    @map("starts_at") @db.Timestamptz(3)
+  endsAt         DateTime    @map("ends_at") @db.Timestamptz(3)
+  salesStartAt   DateTime    @map("sales_start_at") @db.Timestamptz(3)
+  salesEndAt     DateTime    @map("sales_end_at") @db.Timestamptz(3)
+  status         EventStatus @default(DRAFT)
+  seatingType    SeatingType @map("seating_type")
+  coverImageKey  String?     @map("cover_image_key")
+  createdAt      DateTime    @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt      DateTime    @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  organization Organization     @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+  tiers        TicketTier[]
+  seats        Seat[]
+  orders       Order[]
+  tickets      Ticket[]
+  checkIns     CheckIn[]
+  volunteers   EventVolunteer[]
+
+  @@index([organizationId])
+  @@index([status, startsAt])
+  @@map("events")
+}
+
+model EventVolunteer {
+  eventId   String   @map("event_id") @db.Uuid
+  userId    String   @map("user_id") @db.Uuid
+  gate      String?
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+
+  event Event @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  user  User  @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@id([eventId, userId])
+  @@index([userId])
+  @@map("event_volunteers")
+}
+
+model TicketTier {
+  id           String   @id @default(uuid(7)) @db.Uuid
+  eventId      String   @map("event_id") @db.Uuid
+  name         String
+  description  String   @default("")
+  priceInPaise Int      @map("price_in_paise")
+  capacity     Int?
+  soldCount    Int      @default(0) @map("sold_count")
+  maxPerOrder  Int      @default(10) @map("max_per_order")
+  sortOrder    Int      @default(0) @map("sort_order")
+  createdAt    DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt    DateTime @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  event      Event       @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  seats      Seat[]
+  orderItems OrderItem[]
+  tickets    Ticket[]
+
+  @@unique([eventId, name])
+  @@unique([id, eventId])
+  @@map("ticket_tiers")
+}
+
+model Seat {
+  id           String  @id @default(uuid(7)) @db.Uuid
+  eventId      String  @map("event_id") @db.Uuid
+  tierId       String  @map("tier_id") @db.Uuid
+  section      String
+  row          String
+  number       Int
+  x            Int
+  y            Int
+  isAccessible Boolean @default(false) @map("is_accessible")
+
+  event      Event       @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  tier       TicketTier  @relation(fields: [tierId, eventId], references: [id, eventId], onDelete: NoAction)
+  orderItems OrderItem[]
+  tickets    Ticket[]
+
+  @@unique([eventId, section, row, number])
+  @@index([tierId])
+  @@map("seats")
+}
+
+model Order {
+  id                String      @id @default(uuid(7)) @db.Uuid
+  userId            String      @map("user_id") @db.Uuid
+  eventId           String      @map("event_id") @db.Uuid
+  status            OrderStatus @default(PENDING)
+  totalInPaise      Int         @map("total_in_paise")
+  currency          String      @default("INR") @db.Char(3)
+  idempotencyKey    String      @map("idempotency_key")
+  razorpayOrderId   String?     @unique @map("razorpay_order_id")
+  razorpayPaymentId String?     @unique @map("razorpay_payment_id")
+  expiresAt         DateTime    @map("expires_at") @db.Timestamptz(3)
+  paidAt            DateTime?   @map("paid_at") @db.Timestamptz(3)
+  createdAt         DateTime    @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt         DateTime    @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  user    User        @relation(fields: [userId], references: [id], onDelete: Restrict)
+  event   Event       @relation(fields: [eventId], references: [id], onDelete: Restrict)
+  items   OrderItem[]
+  tickets Ticket[]
+
+  @@unique([userId, idempotencyKey])
+  @@unique([id, eventId])
+  @@index([userId, createdAt(sort: Desc)])
+  @@index([eventId, status])
+  @@index([expiresAt], map: "orders_pending_expires_at_idx", where: raw("status = 'PENDING'"))
+  @@map("orders")
+}
+
+model OrderItem {
+  id               String  @id @default(uuid(7)) @db.Uuid
+  orderId          String  @map("order_id") @db.Uuid
+  tierId           String  @map("tier_id") @db.Uuid
+  seatId           String? @map("seat_id") @db.Uuid
+  quantity         Int     @default(1)
+  unitPriceInPaise Int     @map("unit_price_in_paise")
+
+  order Order      @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  tier  TicketTier @relation(fields: [tierId], references: [id], onDelete: Restrict)
+  seat  Seat?      @relation(fields: [seatId], references: [id], onDelete: Restrict)
+
+  @@unique([orderId, seatId])
+  @@index([orderId])
+  @@index([seatId])
+  @@map("order_items")
+}
+
+model Ticket {
+  id          String       @id @default(uuid(7)) @db.Uuid
+  orderId     String       @map("order_id") @db.Uuid
+  eventId     String       @map("event_id") @db.Uuid
+  tierId      String       @map("tier_id") @db.Uuid
+  seatId      String?      @map("seat_id") @db.Uuid
+  holderId    String       @map("holder_id") @db.Uuid
+  status      TicketStatus @default(ACTIVE)
+  issuedAt    DateTime     @default(now()) @map("issued_at") @db.Timestamptz(3)
+  cancelledAt DateTime?    @map("cancelled_at") @db.Timestamptz(3)
+
+  order   Order      @relation(fields: [orderId, eventId], references: [id, eventId], onDelete: Restrict)
+  event   Event      @relation(fields: [eventId], references: [id], onDelete: Restrict)
+  tier    TicketTier @relation(fields: [tierId], references: [id], onDelete: Restrict)
+  seat    Seat?      @relation(fields: [seatId], references: [id], onDelete: Restrict)
+  holder  User       @relation(fields: [holderId], references: [id], onDelete: Restrict)
+  checkIn CheckIn?
+
+  @@unique([seatId], map: "tickets_active_seat_key", where: raw("status = 'ACTIVE'"))
+  @@unique([id, eventId])
+  @@index([eventId, status])
+  @@index([orderId])
+  @@index([holderId])
+  @@map("tickets")
+}
+
+model CheckIn {
+  id              String    @id @default(uuid(7)) @db.Uuid
+  ticketId        String    @unique @map("ticket_id") @db.Uuid
+  eventId         String    @map("event_id") @db.Uuid
+  scannedById     String    @map("scanned_by_id") @db.Uuid
+  gate            String?
+  deviceScannedAt DateTime? @map("device_scanned_at") @db.Timestamptz(3)
+  createdAt       DateTime  @default(now()) @map("created_at") @db.Timestamptz(3)
+
+  ticket    Ticket @relation(fields: [ticketId, eventId], references: [id, eventId], onDelete: Restrict)
+  event     Event  @relation(fields: [eventId], references: [id], onDelete: Restrict)
+  scannedBy User   @relation(fields: [scannedById], references: [id], onDelete: Restrict)
+
+  @@unique([ticketId, eventId])
+  @@index([eventId, createdAt])
+  @@map("check_ins")
+}

@@ -17,6 +17,22 @@ jobs:
     name: Lint, typecheck, test, build
     runs-on: ubuntu-latest
     timeout-minutes: 15
+    services:
+      postgres:
+        image: postgres:17-alpine
+        env:
+          POSTGRES_USER: festpass
+          POSTGRES_PASSWORD: festpass
+          POSTGRES_DB: festpass
+        ports:
+          - 5433:5432
+        options: >-
+          --health-cmd "pg_isready -U festpass -d festpass"
+          --health-interval 5s
+          --health-timeout 3s
+          --health-retries 10
+    env:
+      TEST_DATABASE_SERVER_URL: postgresql://festpass:festpass@localhost:5433/postgres
     steps:
       - uses: actions/checkout@v4
 
