@@ -1,22 +1,25 @@
 import { apiErrorResponseSchema, ErrorCode } from '@festpass/shared';
-import { pino } from 'pino';
 import request from 'supertest';
-import { describe, expect, it } from 'vitest';
-import { createApp } from './app';
+import { afterAll, describe, expect, it } from 'vitest';
+import { db } from './test/database';
+import { createTestContext, WEB_ORIGIN } from './test/context';
 
-const WEB_ORIGIN = 'http://localhost:3000';
+const { app } = createTestContext();
 
-const app = createApp({
-  env: { NODE_ENV: 'test', PORT: 0, LOG_LEVEL: 'silent', WEB_ORIGIN },
-  logger: pino({ level: 'silent' }),
-});
+afterAll(() => db.$disconnect());
 
-describe('GET /health', () => {
-  it('reports the service is up', async () => {
+describe('health checks', () => {
+  it('reports the process is up', async () => {
     const res = await request(app).get('/health');
 
     expect(res.status).toBe(200);
     expect(res.body).toEqual({ status: 'ok' });
+  });
+
+  it('reports ready when the database answers', async () => {
+    const res = await request(app).get('/health/ready');
+
+    expect(res.status).toBe(200);
   });
 });
 
@@ -32,7 +35,7 @@ describe('error responses', () => {
 
   it('rejects malformed JSON with 400', async () => {
     const res = await request(app)
-      .post('/health')
+      .post('/auth/sign-in')
       .set('Content-Type', 'application/json')
       .send('{"broken":');
 
@@ -42,7 +45,7 @@ describe('error responses', () => {
 
   it('rejects oversized bodies with 413', async () => {
     const res = await request(app)
-      .post('/health')
+      .post('/auth/sign-in')
       .set('Content-Type', 'application/json')
       .send(JSON.stringify({ data: 'x'.repeat(200_000) }));
 
@@ -65,11 +68,18 @@ describe('request IDs', () => {
   });
 });
 
-describe('CORS', () => {
+describe('cross-origin protection', () => {
   it('allows the web origin with credentials', async () => {
     const res = await request(app).get('/health').set('Origin', WEB_ORIGIN);
 
     expect(res.headers['access-control-allow-origin']).toBe(WEB_ORIGIN);
     expect(res.headers['access-control-allow-credentials']).toBe('true');
+  });
+
+  it('rejects state-changing requests from other sites', async () => {
+    const res = await request(app).post('/auth/sign-out').set('Origin', 'https://evil.example');
+
+    expect(res.status).toBe(403);
+    expect(apiErrorResponseSchema.parse(res.body).error.code).toBe(ErrorCode.OriginNotAllowed);
   });
 });

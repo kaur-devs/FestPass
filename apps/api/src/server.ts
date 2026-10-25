@@ -1,6 +1,9 @@
+import { createPrismaClient } from '@festpass/db';
 import { createApp } from './app';
 import { type Env, parseEnv } from './config/env';
+import { LogEmailSender } from './lib/email';
 import { createLogger } from './lib/logger';
+import { ArcticGoogleAuthProvider } from './modules/auth/google';
 
 const SHUTDOWN_TIMEOUT_MS = 10_000;
 
@@ -13,14 +16,24 @@ try {
 }
 
 const logger = createLogger(env);
-const app = createApp({ env, logger });
+const db = createPrismaClient(env.DATABASE_URL);
+const google =
+  env.GOOGLE_CLIENT_ID && env.GOOGLE_CLIENT_SECRET
+    ? new ArcticGoogleAuthProvider(
+        env.GOOGLE_CLIENT_ID,
+        env.GOOGLE_CLIENT_SECRET,
+        new URL('/auth/google/callback', env.API_ORIGIN).toString(),
+      )
+    : undefined;
+
+const app = createApp({ env, logger, db, emailSender: new LogEmailSender(logger), google });
 
 const server = app.listen(env.PORT, (error) => {
   if (error) {
     logger.fatal({ err: error }, 'Failed to start server');
     process.exit(1);
   }
-  logger.info({ port: env.PORT }, 'API listening');
+  logger.info({ port: env.PORT, googleSignIn: Boolean(google) }, 'API listening');
 });
 
 let shuttingDown = false;
@@ -36,11 +49,13 @@ function shutdown(signal: NodeJS.Signals) {
   }, SHUTDOWN_TIMEOUT_MS).unref();
 
   server.close((error) => {
-    if (error) {
-      logger.error({ err: error }, 'Error while closing server');
-      process.exit(1);
-    }
-    process.exit(0);
+    void db.$disconnect().finally(() => {
+      if (error) {
+        logger.error({ err: error }, 'Error while closing server');
+        process.exit(1);
+      }
+      process.exit(0);
+    });
   });
 }
 
