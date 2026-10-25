@@ -1,0 +1,4 @@
+{
+  "extends": "@festpass/config/tsconfig/node.json",
+  "include": ["src", "*.config.ts"]
+}
