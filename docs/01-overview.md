@@ -15,12 +15,12 @@ FestPass is a ticketing and check-in platform for college events. Organizers cre
 
 ## Users and roles
 
-| Role | Can do |
-|---|---|
-| Student | Browse events, book seats or tickets, pay, view and download tickets |
+| Role      | Can do                                                                            |
+| --------- | --------------------------------------------------------------------------------- |
+| Student   | Browse events, book seats or tickets, pay, view and download tickets              |
 | Organizer | Create and manage events, tiers and seat maps; view sales and check-in dashboards |
-| Volunteer | Scan and validate tickets at the gate for events they are assigned to |
-| Admin | Manage organizers and platform-wide settings |
+| Volunteer | Scan and validate tickets at the gate for events they are assigned to             |
+| Admin     | Manage organizers and platform-wide settings                                      |
 
 ## Functional requirements
 
@@ -34,13 +34,13 @@ FestPass is a ticketing and check-in platform for college events. Organizers cre
 
 ## Non-functional requirements
 
-| Requirement | Target |
-|---|---|
-| Correctness | A seat is never sold twice; a payment never creates two orders |
-| Burst handling | Ticket release opens to hundreds of users at the same moment |
-| Latency | Seat availability updates reach other clients within about one second |
-| Availability at the gate | Check-in keeps working through poor connectivity and syncs later |
-| Security | Tickets cannot be forged or reused; role checks enforced on the server |
+| Requirement              | Target                                                                 |
+| ------------------------ | ---------------------------------------------------------------------- |
+| Correctness              | A seat is never sold twice; a payment never creates two orders         |
+| Burst handling           | Ticket release opens to hundreds of users at the same moment           |
+| Latency                  | Seat availability updates reach other clients within about one second  |
+| Availability at the gate | Check-in keeps working through poor connectivity and syncs later       |
+| Security                 | Tickets cannot be forged or reused; role checks enforced on the server |
 
 ## Out of scope (for now)
 

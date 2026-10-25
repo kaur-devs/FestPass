@@ -29,12 +29,12 @@ flowchart LR
     service --> cache[(Redis)]
 ```
 
-| Layer | Owns | Must not |
-|---|---|---|
-| Route | URL, HTTP method, middleware order | Contain logic |
-| Controller | Reading the validated request, calling one service, shaping the response | Touch the database or Redis |
-| Service | Business rules, transactions, coordination between repositories | Know about HTTP (`req`, `res`, status codes) |
-| Repository | Database queries | Contain business rules |
+| Layer      | Owns                                                                     | Must not                                     |
+| ---------- | ------------------------------------------------------------------------ | -------------------------------------------- |
+| Route      | URL, HTTP method, middleware order                                       | Contain logic                                |
+| Controller | Reading the validated request, calling one service, shaping the response | Touch the database or Redis                  |
+| Service    | Business rules, transactions, coordination between repositories          | Know about HTTP (`req`, `res`, status codes) |
+| Repository | Database queries                                                         | Contain business rules                       |
 
 Services receive their dependencies through constructors, so tests can pass in fakes without mocking modules.
 
@@ -77,14 +77,14 @@ Error response shape:
 
 ## Conventions
 
-| Area | Rule |
-|---|---|
-| Types | `strict` mode, no `any`; `unknown` plus narrowing at boundaries |
-| Naming | `camelCase` in code, `snake_case` in database columns (mapped by Prisma) |
-| IDs | UUIDs for all public identifiers |
-| Money | Integer paise, never floating point |
-| Time | Stored in UTC; formatted in the user's timezone on the client |
-| Logging | Pino, structured, with a request ID on every line; no `console.log` |
-| Comments | Only for non-obvious reasons; code should explain itself |
-| Commits | Conventional Commits (`feat(booking): ...`), enforced by commitlint |
-| Tests | Next to the code they test (`*.test.ts`) |
+| Area     | Rule                                                                     |
+| -------- | ------------------------------------------------------------------------ |
+| Types    | `strict` mode, no `any`; `unknown` plus narrowing at boundaries          |
+| Naming   | `camelCase` in code, `snake_case` in database columns (mapped by Prisma) |
+| IDs      | UUIDs for all public identifiers                                         |
+| Money    | Integer paise, never floating point                                      |
+| Time     | Stored in UTC; formatted in the user's timezone on the client            |
+| Logging  | Pino, structured, with a request ID on every line; no `console.log`      |
+| Comments | Only for non-obvious reasons; code should explain itself                 |
+| Commits  | Conventional Commits (`feat(booking): ...`), enforced by commitlint      |
+| Tests    | Next to the code they test (`*.test.ts`)                                 |

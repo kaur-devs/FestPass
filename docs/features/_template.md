@@ -24,7 +24,7 @@ Tables, columns, indexes and constraints added or changed, and why each index ex
 ### API
 
 | Method | Path | Auth | Description |
-|---|---|---|---|
+| ------ | ---- | ---- | ----------- |
 
 Request and response examples for the main endpoints.
 
@@ -39,7 +39,7 @@ What was chosen, what was rejected, and why. Link an ADR if the decision is sign
 ## Edge cases and failure handling
 
 | Case | Behaviour |
-|---|---|
+| ---- | --------- |
 
 ## Testing
 

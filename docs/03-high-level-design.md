@@ -31,13 +31,13 @@ flowchart LR
 
 ## Components
 
-| Component | Responsibility | State |
-|---|---|---|
-| `web` | Public event pages (server rendered), booking UI, dashboards, check-in PWA | Stateless |
-| `api` | REST endpoints, auth, business rules, payment webhooks, WebSocket rooms | Stateless; all state in Postgres and Redis |
-| `worker` | Slow or retryable work: ticket PDFs, QR codes, emails | Stateless; jobs live in Redis |
-| PostgreSQL | Source of truth: users, events, seats, orders, tickets, check-ins | Durable |
-| Redis | Seat holds (TTL), cache, rate-limit counters, job queues, Socket.IO pub/sub | Ephemeral; losing it must not lose sold tickets |
+| Component  | Responsibility                                                              | State                                           |
+| ---------- | --------------------------------------------------------------------------- | ----------------------------------------------- |
+| `web`      | Public event pages (server rendered), booking UI, dashboards, check-in PWA  | Stateless                                       |
+| `api`      | REST endpoints, auth, business rules, payment webhooks, WebSocket rooms     | Stateless; all state in Postgres and Redis      |
+| `worker`   | Slow or retryable work: ticket PDFs, QR codes, emails                       | Stateless; jobs live in Redis                   |
+| PostgreSQL | Source of truth: users, events, seats, orders, tickets, check-ins           | Durable                                         |
+| Redis      | Seat holds (TTL), cache, rate-limit counters, job queues, Socket.IO pub/sub | Ephemeral; losing it must not lose sold tickets |
 
 ## Core flow: booking a seat
 
@@ -92,21 +92,21 @@ Key rules:
 
 The expected peak is the moment tickets go on sale: hundreds of students opening the same event page and grabbing seats within seconds.
 
-| Pressure point | Approach |
-|---|---|
-| Event page reads | Server rendering with cached event data in Redis; invalidated when the organizer edits the event |
-| Seat contention | Redis `SET NX` rejects losing requests in under a millisecond, before they reach Postgres |
-| Many API instances | API is stateless; Socket.IO uses the Redis adapter so a broadcast reaches clients on every instance |
-| Database connections | Connection pooling; short transactions that lock only the rows involved |
-| Abuse and bots | Per-user and per-IP rate limits on hold and order endpoints |
+| Pressure point       | Approach                                                                                            |
+| -------------------- | --------------------------------------------------------------------------------------------------- |
+| Event page reads     | Server rendering with cached event data in Redis; invalidated when the organizer edits the event    |
+| Seat contention      | Redis `SET NX` rejects losing requests in under a millisecond, before they reach Postgres           |
+| Many API instances   | API is stateless; Socket.IO uses the Redis adapter so a broadcast reaches clients on every instance |
+| Database connections | Connection pooling; short transactions that lock only the rows involved                             |
+| Abuse and bots       | Per-user and per-IP rate limits on hold and order endpoints                                         |
 
 ## Failure handling
 
-| Failure | Effect | Handling |
-|---|---|---|
-| Redis down | Holds and cache unavailable | Booking endpoints return 503; sold tickets are safe in Postgres |
-| Webhook delivered twice | Possible duplicate ticket | Idempotent by payment ID (unique constraint) |
-| Webhook never arrives | Order stuck in PENDING | Reconciliation job polls Razorpay for stale pending orders |
-| Payment succeeds after hold expired | Seat may have been taken | If still free, confirm; otherwise mark the order for refund |
-| Worker crash mid-job | Ticket not emailed | BullMQ retries with backoff; failed jobs go to a dead-letter queue |
-| API instance dies | Its WebSocket clients disconnect | Clients reconnect to another instance and refetch seat state |
+| Failure                             | Effect                           | Handling                                                           |
+| ----------------------------------- | -------------------------------- | ------------------------------------------------------------------ |
+| Redis down                          | Holds and cache unavailable      | Booking endpoints return 503; sold tickets are safe in Postgres    |
+| Webhook delivered twice             | Possible duplicate ticket        | Idempotent by payment ID (unique constraint)                       |
+| Webhook never arrives               | Order stuck in PENDING           | Reconciliation job polls Razorpay for stale pending orders         |
+| Payment succeeds after hold expired | Seat may have been taken         | If still free, confirm; otherwise mark the order for refund        |
+| Worker crash mid-job                | Ticket not emailed               | BullMQ retries with backoff; failed jobs go to a dead-letter queue |
+| API instance dies                   | Its WebSocket clients disconnect | Clients reconnect to another instance and refetch seat state       |
