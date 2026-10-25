@@ -1,0 +1,106 @@
+@import 'tailwindcss';
+
+:root {
+  --paper: #faf7f2;
+  --surface: #ffffff;
+  --ink: #1a1714;
+  --ink-muted: #6b645c;
+  --line: #d9d2c7;
+  --accent: #f59e0b;
+  --accent-text: #b45309;
+  --on-accent: #1a1714;
+  --success: #15803d;
+  --warning: #a16207;
+  --danger: #b91c1c;
+  color-scheme: light;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme='light']) {
+    --paper: #141210;
+    --surface: #1f1b18;
+    --ink: #f5f1ea;
+    --ink-muted: #a39b91;
+    --line: #2e2a25;
+    --accent: #fbbf24;
+    --accent-text: #fbbf24;
+    --on-accent: #141210;
+    --success: #4ade80;
+    --warning: #facc15;
+    --danger: #f87171;
+    color-scheme: dark;
+  }
+}
+
+:root[data-theme='dark'] {
+  --paper: #141210;
+  --surface: #1f1b18;
+  --ink: #f5f1ea;
+  --ink-muted: #a39b91;
+  --line: #2e2a25;
+  --accent: #fbbf24;
+  --accent-text: #fbbf24;
+  --on-accent: #141210;
+  --success: #4ade80;
+  --warning: #facc15;
+  --danger: #f87171;
+  color-scheme: dark;
+}
+
+@theme inline {
+  --color-*: initial;
+  --color-paper: var(--paper);
+  --color-surface: var(--surface);
+  --color-ink: var(--ink);
+  --color-ink-muted: var(--ink-muted);
+  --color-line: var(--line);
+  --color-accent: var(--accent);
+  --color-accent-text: var(--accent-text);
+  --color-on-accent: var(--on-accent);
+  --color-success: var(--success);
+  --color-warning: var(--warning);
+  --color-danger: var(--danger);
+  --color-white: #ffffff;
+
+  --font-*: initial;
+  --font-display: var(--font-display-face);
+  --font-sans: var(--font-sans-face);
+  --font-mono: var(--font-mono-face);
+
+  --text-display-md: 2.5rem;
+  --text-display-md--line-height: 1;
+  --text-display-md--letter-spacing: 0.01em;
+  --text-display-lg: 4rem;
+  --text-display-lg--line-height: 0.9375;
+  --text-display-lg--letter-spacing: 0.01em;
+
+  --radius-*: initial;
+  --radius-control: 4px;
+  --radius-card: 12px;
+
+  --shadow-*: initial;
+  --shadow-popover: 0 1px 2px rgb(0 0 0 / 0.06);
+
+  --container-content: 1120px;
+}
+
+@layer base {
+  body {
+    @apply bg-paper font-sans text-ink antialiased;
+  }
+
+  :focus-visible {
+    outline: 2px solid var(--ink);
+    outline-offset: 2px;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+    }
+  }
+}
