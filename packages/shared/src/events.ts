@@ -222,6 +222,7 @@ export interface SeatView {
   tierId: string;
   isAccessible: boolean;
   status: SeatStatus;
+  heldUntil: string | null;
 }
 
 export interface ManagedEvent extends EventDetail {

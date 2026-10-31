@@ -2,6 +2,7 @@ import { EventStatus, getConstraintViolation, SeatingType } from '@festpass/db';
 import {
   type CreateEventData,
   ErrorCode,
+  type EventSalesStats,
   type EventSummary,
   type ManagedEvent,
   type SeatMapData,
@@ -97,6 +98,34 @@ export class EventManagementService {
 
   async get(userId: string, eventId: string): Promise<ManagedEvent> {
     return this.toManagedEvent(await this.loadForManager(userId, eventId));
+  }
+
+  async salesStats(userId: string, eventId: string): Promise<EventSalesStats> {
+    await this.loadForManager(userId, eventId);
+    const figures = await this.events.salesFigures(eventId, new Date());
+    const sold = new Map(figures.ticketsByTier.map((row) => [row.tierId, row._count._all]));
+    const revenue = new Map(figures.revenueByTier.map((row) => [row.tierId, row.revenue]));
+
+    return {
+      eventId,
+      ticketsSold: [...sold.values()].reduce((sum, count) => sum + count, 0),
+      revenueInPaise: [...revenue.values()].reduce((sum, amount) => sum + amount, 0),
+      checkoutsInProgress: figures.checkoutsInProgress,
+      tiers: figures.tiers.map((tier) => ({
+        id: tier.id,
+        name: tier.name,
+        sold: sold.get(tier.id) ?? 0,
+        capacity: tier.capacity,
+        revenueInPaise: revenue.get(tier.id) ?? 0,
+      })),
+      recentOrders: figures.recentOrders.map((order) => ({
+        id: order.id,
+        buyerName: order.user.name,
+        ticketCount: order._count.tickets,
+        totalInPaise: order.totalInPaise,
+        paidAt: (order.paidAt ?? order.updatedAt).toISOString(),
+      })),
+    };
   }
 
   async update(userId: string, eventId: string, data: UpdateEventData): Promise<ManagedEvent> {

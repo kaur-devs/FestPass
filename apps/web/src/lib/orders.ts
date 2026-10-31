@@ -10,10 +10,10 @@ import type {
 import { useQuery } from '@tanstack/react-query';
 import { useEffect, useEffectEvent, useState } from 'react';
 import { ApiError, apiJson } from './api';
-import { authApi } from './auth';
+import { authApi, optionalUserKey } from './auth';
 
 export const bookingKeys = {
-  optionalUser: ['optional-user'] as const,
+  optionalUser: optionalUserKey,
   seats: (slug: string) => ['seats', slug] as const,
   hold: (eventId: string) => ['hold', eventId] as const,
   order: (orderId: string) => ['order', orderId] as const,

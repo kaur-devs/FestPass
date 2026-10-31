@@ -1,6 +1,11 @@
 'use client';
 
-import { type EventDetail, formatPrice, MAX_TICKETS_PER_ORDER } from '@festpass/shared';
+import {
+  type EventDetail,
+  formatPrice,
+  MAX_TICKETS_PER_ORDER,
+  RealtimeMessage,
+} from '@festpass/shared';
 import { useMutation } from '@tanstack/react-query';
 import { Minus, Plus } from 'lucide-react';
 import Link from 'next/link';
@@ -12,12 +17,22 @@ import { ApiError } from '@/lib/api';
 import { availabilityLabel } from '@/lib/events';
 import { errorMessage } from '@/lib/forms';
 import { bookingApi, useOptionalUser } from '@/lib/orders';
+import { useEventUpdates } from '@/lib/realtime';
 
 export function GeneralBooking({ event }: { event: EventDetail }) {
   const router = useRouter();
   const user = useOptionalUser();
   const [quantities, setQuantities] = useState<Record<string, number>>({});
+  const [available, setAvailable] = useState<Record<string, number>>(() =>
+    Object.fromEntries(event.tiers.map((tier) => [tier.id, tier.available])),
+  );
   const checkoutKey = useRef<string | null>(null);
+
+  useEventUpdates(event.id, {
+    [RealtimeMessage.TiersUpdated]: (message) => {
+      setAvailable(Object.fromEntries(message.tiers.map((tier) => [tier.id, tier.available])));
+    },
+  });
 
   const totalTickets = Object.values(quantities).reduce((sum, quantity) => sum + quantity, 0);
   const total = event.tiers.reduce(
@@ -56,9 +71,10 @@ export function GeneralBooking({ event }: { event: EventDetail }) {
       {checkout.isError && <Alert tone="danger">{errorMessage(checkout.error)}</Alert>}
       <ul className="divide-y divide-line">
         {event.tiers.map((tier) => {
-          const quantity = quantities[tier.id] ?? 0;
-          const max = Math.min(tier.maxPerOrder, tier.available, MAX_TICKETS_PER_ORDER);
-          const label = availabilityLabel(tier.available, tier.capacity);
+          const left = available[tier.id] ?? tier.available;
+          const max = Math.min(tier.maxPerOrder, left, MAX_TICKETS_PER_ORDER);
+          const quantity = Math.min(quantities[tier.id] ?? 0, max);
+          const label = availabilityLabel(left, tier.capacity);
           return (
             <li key={tier.id} className="flex items-center justify-between gap-4 py-3">
               <div className="flex flex-col gap-0.5">

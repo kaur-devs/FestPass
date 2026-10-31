@@ -44,6 +44,8 @@ import type { PaymentGateway } from './modules/payments/razorpay.gateway';
 import { TicketCodes } from './modules/tickets/ticket-codes';
 import { TicketDocuments } from './modules/tickets/ticket-documents';
 import type { TicketDelivery } from './jobs/queues';
+import type { RealtimePublisher } from './modules/realtime/publisher';
+import { SeatStatusReader } from './modules/realtime/seat-status';
 import { createUserRouter } from './modules/users/user.routes';
 import { UserService } from './modules/users/user.service';
 
@@ -56,6 +58,7 @@ export interface AppDependencies {
   google?: GoogleAuthProvider | undefined;
   paymentGateway?: PaymentGateway | undefined;
   ticketDelivery?: TicketDelivery | undefined;
+  realtime?: RealtimePublisher | undefined;
   authRateLimits?: AuthRateLimits;
 }
 
@@ -68,6 +71,7 @@ export function createApp({
   google,
   paymentGateway,
   ticketDelivery,
+  realtime,
   authRateLimits = DEFAULT_AUTH_RATE_LIMITS,
 }: AppDependencies): Express {
   const cookies = { secure: env.NODE_ENV === 'production', domain: env.COOKIE_DOMAIN };
@@ -94,23 +98,23 @@ export function createApp({
 
   const authorization = new AuthorizationService(db);
   const eventsRepository = new EventsRepository(db);
-  const eventCatalog = new EventCatalogService(eventsRepository, seatHolds);
+  const eventCatalog = new EventCatalogService(
+    eventsRepository,
+    new SeatStatusReader(db, seatHolds),
+  );
   const eventsController = new EventsController(
     eventCatalog,
     new EventManagementService(eventsRepository, authorization),
   );
 
   const ordersRepository = new OrdersRepository(db);
-  const ordersService = new OrdersService(
-    ordersRepository,
-    seatHolds,
-    ticketCodes,
-    logger,
-    ticketDelivery,
-  );
+  const ordersService = new OrdersService(ordersRepository, seatHolds, ticketCodes, logger, {
+    delivery: ticketDelivery,
+    publisher: realtime,
+  });
   const ordersController = new OrdersController(
     ordersService,
-    new HoldsService(ordersRepository, seatHolds),
+    new HoldsService(ordersRepository, seatHolds, realtime),
     new TicketDocuments(db, ticketCodes, env.WEB_ORIGIN),
   );
   const paymentsController = new PaymentsController(

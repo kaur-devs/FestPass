@@ -9,7 +9,7 @@ import { useForm } from 'react-hook-form';
 import { Alert } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import { TextField } from '@/components/ui/text-field';
-import { authApi, currentUserKey } from '@/lib/auth';
+import { authApi, cacheSignedInUser } from '@/lib/auth';
 import { applyServerErrors } from '@/lib/forms';
 import { GoogleButton } from '../google-button';
 
@@ -28,7 +28,7 @@ export function SignUpForm() {
     setFormError(undefined);
     try {
       const { user } = await authApi.signUp(values);
-      queryClient.setQueryData(currentUserKey, user);
+      cacheSignedInUser(queryClient, user);
       router.replace('/account');
     } catch (error) {
       setFormError(applyServerErrors(error, setError, ['name', 'email', 'password']));

@@ -106,7 +106,7 @@ UPDATE orders SET status = 'PAID', paid_at = now()
 
 If the insert or capacity check fails, a second transaction marks the order `REFUND_PENDING` (or `FAILED` when nothing was paid) and returns any reservation.
 
-**Expire** runs every 15 seconds in the API, and also inside every checkout for that event:
+**Expire** runs every 15 seconds as a scheduled worker job (see [tickets.md](tickets.md)), and also inside every checkout for that event:
 
 ```sql
 WITH expired AS (
@@ -137,14 +137,14 @@ Limits: 10 seats per hold, each tier's `max_per_order`, 20 tickets per order. Ra
 
 ### Web
 
-| Piece               | Behaviour                                                                                                  |
-| ------------------- | ---------------------------------------------------------------------------------------------------------- |
-| Seat map            | Seats are `role="checkbox"` with full labels; one tab stop with arrow-key movement; Space or Enter toggles |
-| Selection           | Updates instantly on click; hold requests run one at a time in click order, so the last click wins         |
-| Live state          | Seat statuses refresh every 15 seconds (real-time updates come in a later phase)                           |
-| Countdown           | Shows the hold or checkout time left; when it reaches zero the page reloads the hold and explains why      |
-| Resume              | Returning to an event with an open checkout shows a link back to it                                        |
-| Signed-out visitors | Can browse the map; choosing a seat asks them to sign in and brings them back                              |
+| Piece               | Behaviour                                                                                                    |
+| ------------------- | ------------------------------------------------------------------------------------------------------------ |
+| Seat map            | Seats are `role="checkbox"` with full labels; one tab stop with arrow-key movement; Space or Enter toggles   |
+| Selection           | Updates instantly on click; hold requests run one at a time in click order, so the last click wins           |
+| Live state          | Pushed over WebSockets as seats change (see [realtime.md](realtime.md)); a 60-second refresh is the fallback |
+| Countdown           | Shows the hold or checkout time left; when it reaches zero the page reloads the hold and explains why        |
+| Resume              | Returning to an event with an open checkout shows a link back to it                                          |
+| Signed-out visitors | Can browse the map; choosing a seat asks them to sign in and brings them back                                |
 
 ## Decisions and trade-offs
 
@@ -158,7 +158,7 @@ Limits: 10 seats per hold, each tier's `max_per_order`, 20 tickets per order. Ra
 | CHECK constraint as the oversell guard instead of `SELECT ... FOR UPDATE`            | `UPDATE ... SET sold_count = sold_count + n` already row-locks; the constraint turns "too many" into a clean error        |
 | Tiers updated in ID order                                                            | Two orders touching the same tiers always lock them in the same order, so they cannot deadlock                            |
 | Expiry sweep inside the API for now                                                  | No worker process yet; the sweep is safe to run on many instances and moves to the background worker later                |
-| Polling instead of WebSockets for the seat map                                       | Correctness never depends on the map being fresh; real-time updates improve the experience later                          |
+| The seat map is a view, never the authority                                          | Correctness never depends on the map being fresh; Redis and Postgres decide every hold and sale                           |
 
 ## Edge cases and failure handling
 

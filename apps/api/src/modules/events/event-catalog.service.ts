@@ -3,13 +3,13 @@ import type { EventDetail, EventSummary, Page, SeatView } from '@festpass/shared
 import { decodeEventCursor, encodeEventCursor } from '../../lib/cursor';
 import { NotFoundError } from '../../lib/errors';
 import { toEventDetail, toEventSummary } from './events.mapper';
-import type { SeatHoldStore } from '../holds/seat-hold.store';
+import type { SeatStatusReader } from '../realtime/seat-status';
 import type { EventsRepository } from './events.repository';
 
 export class EventCatalogService {
   constructor(
     private readonly events: EventsRepository,
-    private readonly holds: SeatHoldStore,
+    private readonly seats: SeatStatusReader,
   ) {}
 
   async listUpcoming(options: {
@@ -43,21 +43,7 @@ export class EventCatalogService {
     return this.seatViews(event.id);
   }
 
-  async seatViews(eventId: string): Promise<SeatView[]> {
-    const [seats, held] = await Promise.all([
-      this.events.seatsWithStatus(eventId),
-      this.holds.heldSeatIds(eventId),
-    ]);
-    return seats.map((seat) => ({
-      id: seat.id,
-      section: seat.section,
-      row: seat.row,
-      number: seat.number,
-      x: seat.x,
-      y: seat.y,
-      tierId: seat.tierId,
-      isAccessible: seat.isAccessible,
-      status: seat.sold ? 'SOLD' : held.has(seat.id) ? 'HELD' : 'AVAILABLE',
-    }));
+  seatViews(eventId: string): Promise<SeatView[]> {
+    return this.seats.all(eventId);
   }
 }

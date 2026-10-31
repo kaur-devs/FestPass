@@ -8,6 +8,7 @@ import {
 import { ConflictError } from '../../lib/errors';
 import type { OrdersRepository } from '../orders/orders.repository';
 import { assertOnSale } from '../orders/sales-window';
+import { type RealtimePublisher, silentPublisher } from '../realtime/publisher';
 import type { SeatHoldStore } from './seat-hold.store';
 
 const HOLD_TTL_MS = SEAT_HOLD_MINUTES * 60 * 1000;
@@ -16,6 +17,7 @@ export class HoldsService {
   constructor(
     private readonly orders: OrdersRepository,
     private readonly store: SeatHoldStore,
+    private readonly publisher: RealtimePublisher = silentPublisher,
   ) {}
 
   async hold(
@@ -52,9 +54,11 @@ export class HoldsService {
       }
     }
 
+    const previous = await this.store.current(eventId, userId);
     const result = await this.store.hold(eventId, userId, seatIds, HOLD_TTL_MS);
     if (result.status === 'conflict') throw this.unavailable(result.seatIds);
     if (result.status === 'checkout-in-progress') throw checkoutInProgress();
+    await this.publisher.eventChanged(eventId, [...(previous?.seatIds ?? []), ...seatIds]);
     if (seatIds.length === 0) return null;
     return { seatIds: [...seatIds].sort(), expiresAt: result.expiresAt.toISOString() };
   }

@@ -20,6 +20,7 @@ export function createEventsRouter(
   manage.post('/events/:eventId/publish', controller.publish);
   manage.post('/events/:eventId/cancel', controller.cancel);
   manage.get('/events/:eventId/seats', controller.getSeats);
+  manage.get('/events/:eventId/stats', controller.salesStats);
   manage.put('/events/:eventId/seat-map', controller.replaceSeatMap);
   manage.post('/events/:eventId/tiers', controller.addTier);
   manage.patch('/events/:eventId/tiers/:tierId', controller.updateTier);

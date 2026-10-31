@@ -67,6 +67,18 @@ export class OrdersRepository {
     });
   }
 
+  async seatIdsByOrder(orderIds: readonly string[]): Promise<Map<string, string[]>> {
+    const items = await this.db.orderItem.findMany({
+      where: { orderId: { in: [...orderIds] }, seatId: { not: null } },
+      select: { orderId: true, seatId: true },
+    });
+    const seats = new Map<string, string[]>();
+    for (const item of items) {
+      if (item.seatId) seats.set(item.orderId, [...(seats.get(item.orderId) ?? []), item.seatId]);
+    }
+    return seats;
+  }
+
   expireDue(now: Date, eventId?: string): Promise<ExpiredOrder[]> {
     return this.expireDueWith(this.db, now, eventId);
   }

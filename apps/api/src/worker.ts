@@ -22,6 +22,7 @@ import { OrdersRepository } from './modules/orders/orders.repository';
 import { OrdersService } from './modules/orders/orders.service';
 import { PaymentsRepository } from './modules/payments/payments.repository';
 import { PaymentsService } from './modules/payments/payments.service';
+import { createRealtimePublisher } from './modules/realtime/create-publisher';
 import { TicketCodes } from './modules/tickets/ticket-codes';
 import { TicketDocuments } from './modules/tickets/ticket-documents';
 
@@ -40,6 +41,7 @@ const orders = new OrdersService(
   new SeatHoldStore(redis),
   ticketCodes,
   logger,
+  { publisher: createRealtimePublisher(db, redis, logger) },
 );
 const dependencies: ProcessorDependencies = {
   emailSender: deliveringEmailSender(env, logger),

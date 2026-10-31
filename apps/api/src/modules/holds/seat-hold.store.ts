@@ -64,6 +64,18 @@ redis.call('DEL', selection, checkout)
 return 1
 `;
 
+const HELD_WITH_TTL_SCRIPT = `
+local fields = redis.call('HKEYS', KEYS[1])
+if #fields == 0 then return {} end
+local ttls = redis.call('HPTTL', KEYS[1], 'FIELDS', #fields, unpack(fields))
+local result = {}
+for i, field in ipairs(fields) do
+  result[#result + 1] = field
+  result[#result + 1] = ttls[i]
+end
+return result
+`;
+
 type ScriptReply = (number | string)[];
 
 export type HoldResult =
@@ -151,7 +163,37 @@ export class SeatHoldStore {
   }
 
   async heldSeatIds(eventId: string): Promise<Set<string>> {
+    return new Set((await this.heldSeats(eventId)).keys());
+  }
+
+  async heldSeats(eventId: string): Promise<Map<string, Date>> {
     const [held] = keys(eventId, '');
-    return new Set(await this.redis.hkeys(held));
+    const reply = (await this.redis.eval(HELD_WITH_TTL_SCRIPT, 1, held)) as ScriptReply;
+    const now = Date.now();
+    const seats = new Map<string, Date>();
+    for (let i = 0; i < reply.length; i += 2) {
+      const ttl = Number(reply[i + 1]);
+      if (ttl > 0) seats.set(String(reply[i]), new Date(now + ttl));
+    }
+    return seats;
+  }
+
+  async heldUntil(eventId: string, seatIds: readonly string[]): Promise<Map<string, Date>> {
+    if (seatIds.length === 0) return new Map();
+    const [held] = keys(eventId, '');
+    const ttls = (await this.redis.call(
+      'HPTTL',
+      held,
+      'FIELDS',
+      seatIds.length,
+      ...seatIds,
+    )) as number[];
+    const now = Date.now();
+    const seats = new Map<string, Date>();
+    seatIds.forEach((seatId, index) => {
+      const ttl = ttls[index] ?? -2;
+      if (ttl > 0) seats.set(seatId, new Date(now + ttl));
+    });
+    return seats;
   }
 }

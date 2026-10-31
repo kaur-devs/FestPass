@@ -124,6 +124,7 @@ export function SeatMapEditor({ event }: { event: ManagedEvent }) {
         ...seat,
         id: `${seat.section}-${seat.row}-${seat.number}`,
         status: 'AVAILABLE',
+        heldUntil: null,
       }))
     : [];
 

@@ -107,7 +107,7 @@ describe('issued tickets', () => {
       new SeatHoldStore(redis),
       codes,
       pino({ level: 'silent' }),
-      delivery,
+      { delivery },
     );
 
     await orders.confirm(order.id);

@@ -11,5 +11,5 @@ One document per feature, written alongside the code. Copy [_template.md](_templ
 | Seat holds and booking      | [booking.md](booking.md)   | Done    |
 | Payments                    | [payments.md](payments.md) | Done    |
 | Ticket generation and email | [tickets.md](tickets.md)   | Done    |
-| Real-time updates           | `realtime.md`              | Planned |
+| Real-time updates           | [realtime.md](realtime.md) | Done    |
 | Volunteer check-in          | `checkin.md`               | Planned |

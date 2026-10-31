@@ -73,6 +73,14 @@ export class EventsController {
     });
   };
 
+  salesStats: RequestHandler = async (req, res) => {
+    const stats = await this.management.salesStats(
+      getAuth(req).userId,
+      parseIdParam(req, 'eventId'),
+    );
+    res.json({ stats });
+  };
+
   getSeats: RequestHandler = async (req, res) => {
     const eventId = parseIdParam(req, 'eventId');
     await this.management.get(getAuth(req).userId, eventId);

@@ -1,4 +1,10 @@
-import { EventStatus, type Prisma, type PrismaClient, TicketStatus } from '@festpass/db';
+import {
+  EventStatus,
+  OrderStatus,
+  type Prisma,
+  type PrismaClient,
+  TicketStatus,
+} from '@festpass/db';
 import type { EventCursor } from '../../lib/cursor';
 import type { PlacedSeat } from '@festpass/shared';
 
@@ -56,6 +62,37 @@ export class EventsRepository {
       orderBy: [{ y: 'asc' }, { x: 'asc' }],
     });
     return seats.map(({ tickets, ...seat }) => ({ ...seat, sold: tickets.length > 0 }));
+  }
+
+  async salesFigures(eventId: string, now: Date) {
+    const [tiers, ticketsByTier, revenueByTier, checkoutsInProgress, recentOrders] =
+      await Promise.all([
+        this.db.ticketTier.findMany({
+          where: { eventId },
+          orderBy: [{ sortOrder: 'asc' }, { priceInPaise: 'desc' }],
+        }),
+        this.db.ticket.groupBy({
+          by: ['tierId'],
+          where: { eventId, status: TicketStatus.ACTIVE },
+          _count: { _all: true },
+        }),
+        this.db.$queryRaw<{ tierId: string; revenue: number }[]>`
+          SELECT i.tier_id AS "tierId", SUM(i.unit_price_in_paise * i.quantity)::int AS revenue
+          FROM order_items i JOIN orders o ON o.id = i.order_id
+          WHERE o.event_id = ${eventId}::uuid AND o.status = 'PAID'
+          GROUP BY i.tier_id
+        `,
+        this.db.order.count({
+          where: { eventId, status: OrderStatus.PENDING, expiresAt: { gt: now } },
+        }),
+        this.db.order.findMany({
+          where: { eventId, status: OrderStatus.PAID },
+          include: { user: { select: { name: true } }, _count: { select: { tickets: true } } },
+          orderBy: { paidAt: 'desc' },
+          take: 8,
+        }),
+      ]);
+    return { tiers, ticketsByTier, revenueByTier, checkoutsInProgress, recentOrders };
   }
 
   countActiveTickets(eventId: string) {

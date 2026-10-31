@@ -14,6 +14,7 @@ An ADR records one significant decision: the context, the options, what was chos
 | [0008](0008-reserve-at-checkout.md)          | Reserve capacity at checkout, not at payment                          | Accepted                  |
 | [0009](0009-payment-confirmation.md)         | Confirm payments from the browser, the webhook and reconciliation     | Accepted                  |
 | [0010](0010-worker-entry-point.md)           | Run the worker as a second entry point of the API codebase            | Accepted                  |
+| [0011](0011-realtime-state-messages.md)      | Push current state, not change events, over Socket.IO                 | Accepted                  |
 
 ## Template
 

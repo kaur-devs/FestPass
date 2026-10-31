@@ -10,7 +10,7 @@ import { useForm } from 'react-hook-form';
 import { Alert } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import { TextField } from '@/components/ui/text-field';
-import { authApi, currentUserKey } from '@/lib/auth';
+import { authApi, cacheSignedInUser } from '@/lib/auth';
 import { applyServerErrors } from '@/lib/forms';
 import { GoogleButton } from '../google-button';
 
@@ -34,7 +34,7 @@ export function SignInForm({ redirectTo, initialError }: SignInFormProps) {
     setFormError(undefined);
     try {
       const { user } = await authApi.signIn(values);
-      queryClient.setQueryData(currentUserKey, user);
+      cacheSignedInUser(queryClient, user);
       router.replace(redirectTo);
     } catch (error) {
       setFormError(applyServerErrors(error, setError, ['email', 'password']));

@@ -5,7 +5,7 @@ import type {
   SignInInput,
   SignUpInput,
 } from '@festpass/shared';
-import { useQuery } from '@tanstack/react-query';
+import { type QueryClient, useQuery } from '@tanstack/react-query';
 import { API_URL, apiCommand, apiJson } from './api';
 
 interface UserResponse {
@@ -13,6 +13,12 @@ interface UserResponse {
 }
 
 export const currentUserKey = ['current-user'] as const;
+export const optionalUserKey = [...currentUserKey, 'optional'] as const;
+
+export function cacheSignedInUser(queryClient: QueryClient, user: CurrentUser) {
+  queryClient.setQueryData(currentUserKey, user);
+  queryClient.setQueryData(optionalUserKey, user);
+}
 
 export const googleSignInUrl = `${API_URL}/auth/google`;
 

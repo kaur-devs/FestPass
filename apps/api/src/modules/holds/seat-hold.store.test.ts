@@ -65,6 +65,21 @@ describe('holding seats', () => {
   });
 });
 
+describe('expiry times', () => {
+  it('reports when each held seat will be released', async () => {
+    const before = Date.now();
+    await store.hold(EVENT, RIYA, ['a1'], MINUTE);
+    await store.hold(EVENT, ARJUN, ['b1'], 2 * MINUTE);
+
+    const all = await store.heldSeats(EVENT);
+    const some = await store.heldUntil(EVENT, ['a1', 'zz']);
+
+    expect(all.get('a1')?.getTime()).toBeGreaterThanOrEqual(before + MINUTE - 1000);
+    expect(all.get('b1')?.getTime()).toBeGreaterThan(before + MINUTE + 30_000);
+    expect([...some.keys()]).toEqual(['a1']);
+  });
+});
+
 describe('checkout', () => {
   it('claims the selection, extends it, and blocks changes until released', async () => {
     await store.hold(EVENT, RIYA, ['a1', 'a2'], 100);

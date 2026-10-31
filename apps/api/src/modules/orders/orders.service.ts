@@ -10,23 +10,44 @@ import type { Logger } from 'pino';
 import type { TicketDelivery } from '../../jobs/queues';
 import { ConflictError, NotFoundError, ValidationError } from '../../lib/errors';
 import { checkoutInProgress } from '../holds/holds.service';
+import { type RealtimePublisher, silentPublisher } from '../realtime/publisher';
 import type { SeatHoldStore } from '../holds/seat-hold.store';
 import type { TicketCodes } from '../tickets/ticket-codes';
 import { toOrderView } from './orders.mapper';
-import type { NewOrderItem, OrdersRepository, Payment } from './orders.repository';
+import type {
+  NewOrderItem,
+  OrdersRepository,
+  OrderWithDetails,
+  Payment,
+} from './orders.repository';
 import { assertOnSale } from './sales-window';
 
 const CHECKOUT_TTL_MS = CHECKOUT_MINUTES * 60 * 1000;
 const LOST_RACE_CONSTRAINTS = new Set(['tickets_active_seat_key', 'ticket_tiers_capacity_check']);
 
+export interface OrdersServiceOptions {
+  delivery?: TicketDelivery | undefined;
+  publisher?: RealtimePublisher | undefined;
+}
+
+function seatIdsOf(order: Pick<OrderWithDetails, 'items'>): string[] {
+  return order.items.flatMap((item) => (item.seatId ? [item.seatId] : []));
+}
+
 export class OrdersService {
+  private readonly delivery: TicketDelivery | undefined;
+  private readonly publisher: RealtimePublisher;
+
   constructor(
     private readonly orders: OrdersRepository,
     private readonly holds: SeatHoldStore,
     private readonly codes: TicketCodes,
     private readonly logger: Logger,
-    private readonly delivery?: TicketDelivery,
-  ) {}
+    options: OrdersServiceOptions = {},
+  ) {
+    this.delivery = options.delivery;
+    this.publisher = options.publisher ?? silentPublisher;
+  }
 
   async checkout(userId: string, input: CheckoutData): Promise<OrderView> {
     const existing = await this.orders.findByIdempotencyKey(userId, input.idempotencyKey);
@@ -51,7 +72,10 @@ export class OrdersService {
         items,
       });
       orderId = order.id;
-      if (order.totalInPaise > 0) return toOrderView(this.codes, order);
+      if (order.totalInPaise > 0) {
+        await this.publisher.eventChanged(event.id, seatIdsOf(order));
+        return toOrderView(this.codes, order);
+      }
     } catch (error) {
       const constraint = getConstraintViolation(error)?.constraint;
       if (constraint === 'orders_user_id_idempotency_key_key') {
@@ -59,6 +83,10 @@ export class OrdersService {
         if (raced) return toOrderView(this.codes, raced);
       }
       await this.holds.release(event.id, userId);
+      await this.publisher.eventChanged(
+        event.id,
+        items.flatMap((item) => (item.seatId ? [item.seatId] : [])),
+      );
       if (constraint === 'ticket_tiers_capacity_check') {
         throw new ConflictError('Not enough tickets are left in this tier.', ErrorCode.TierSoldOut);
       }
@@ -85,16 +113,12 @@ export class OrdersService {
       await this.orders.markUnfulfillable(orderId, payment);
     }
 
-    const order = await this.requireOrder(orderId);
-    await this.holds.release(order.eventId, order.userId);
-    return toOrderView(this.codes, order);
+    return this.settled(orderId);
   }
 
   async rejectPayment(orderId: string, payment: Payment): Promise<OrderView> {
     await this.orders.markUnfulfillable(orderId, payment);
-    const order = await this.requireOrder(orderId);
-    await this.holds.release(order.eventId, order.userId);
-    return toOrderView(this.codes, order);
+    return this.settled(orderId);
   }
 
   async cancel(userId: string, orderId: string): Promise<OrderView> {
@@ -106,6 +130,7 @@ export class OrdersService {
       );
     }
     await this.holds.release(order.eventId, userId);
+    await this.publisher.eventChanged(order.eventId, seatIdsOf(order));
     return toOrderView(this.codes, await this.requireOrder(orderId));
   }
 
@@ -116,8 +141,25 @@ export class OrdersService {
   async expireDue(now = new Date()): Promise<number> {
     const expired = await this.orders.expireDue(now);
     await Promise.all(expired.map((order) => this.holds.release(order.eventId, order.userId)));
+    const seatsByOrder = await this.orders.seatIdsByOrder(expired.map((order) => order.id));
+    const seatsByEvent = new Map<string, string[]>();
+    for (const order of expired) {
+      const seats = seatsByEvent.get(order.eventId) ?? [];
+      seats.push(...(seatsByOrder.get(order.id) ?? []));
+      seatsByEvent.set(order.eventId, seats);
+    }
+    await Promise.all(
+      [...seatsByEvent].map(([eventId, seatIds]) => this.publisher.eventChanged(eventId, seatIds)),
+    );
     if (expired.length > 0) this.logger.info({ count: expired.length }, 'Expired unpaid checkouts');
     return expired.length;
+  }
+
+  private async settled(orderId: string): Promise<OrderView> {
+    const order = await this.requireOrder(orderId);
+    await this.holds.release(order.eventId, order.userId);
+    await this.publisher.eventChanged(order.eventId, seatIdsOf(order));
+    return toOrderView(this.codes, order);
   }
 
   private async deliverTickets(orderId: string) {

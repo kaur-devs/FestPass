@@ -1,10 +1,16 @@
 'use client';
 
-import { type EventDetail, ErrorCode, formatPrice, type SeatView } from '@festpass/shared';
+import {
+  type EventDetail,
+  ErrorCode,
+  formatPrice,
+  RealtimeMessage,
+  type SeatView,
+} from '@festpass/shared';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { SeatMap } from '@/components/seat-map/seat-map';
 import { Alert } from '@/components/ui/alert';
 import { Button, buttonClasses } from '@/components/ui/button';
@@ -17,8 +23,41 @@ import {
   useOptionalUser,
   useSecondsUntil,
 } from '@/lib/orders';
+import { useEventUpdates } from '@/lib/realtime';
 
-const SEAT_REFRESH_MS = 15_000;
+const SEAT_REFRESH_MS = 60_000;
+
+function useReleasedHolds(seats: readonly SeatView[]): SeatView[] {
+  const [now, setNow] = useState(() => Date.now());
+  const nextRelease = Math.min(
+    ...seats
+      .map((seat) => (seat.status === 'HELD' && seat.heldUntil ? Date.parse(seat.heldUntil) : NaN))
+      .filter((time) => time > now),
+  );
+
+  useEffect(() => {
+    if (!Number.isFinite(nextRelease)) return;
+    const timer = setTimeout(
+      () => {
+        setNow(Date.now());
+      },
+      Math.max(0, nextRelease - Date.now()) + 50,
+    );
+    return () => {
+      clearTimeout(timer);
+    };
+  }, [nextRelease]);
+
+  return useMemo(
+    () =>
+      seats.map((seat) =>
+        seat.status === 'HELD' && seat.heldUntil && Date.parse(seat.heldUntil) <= now
+          ? { ...seat, status: 'AVAILABLE', heldUntil: null }
+          : seat,
+      ),
+    [seats, now],
+  );
+}
 
 interface ReservedBookingProps {
   event: EventDetail;
@@ -41,6 +80,25 @@ export function ReservedBooking({ event, initialSeats, onSale }: ReservedBooking
     initialData: initialSeats,
     refetchInterval: SEAT_REFRESH_MS,
   });
+  useEventUpdates(
+    event.id,
+    {
+      [RealtimeMessage.SeatsUpdated]: (message) => {
+        queryClient.setQueryData<SeatView[]>(bookingKeys.seats(event.slug), (previous) => {
+          if (!previous) return previous;
+          const updates = new Map(message.seats.map((seat) => [seat.id, seat]));
+          return previous.map((seat) => {
+            const update = updates.get(seat.id);
+            return update ? { ...seat, status: update.status, heldUntil: update.heldUntil } : seat;
+          });
+        });
+      },
+    },
+    () => {
+      void seats.refetch();
+    },
+  );
+  const liveSeats = useReleasedHolds(seats.data);
   const current = useQuery({
     queryKey: bookingKeys.hold(event.id),
     queryFn: () => bookingApi.currentHold(event.id),
@@ -97,7 +155,7 @@ export function ReservedBooking({ event, initialSeats, onSale }: ReservedBooking
     void seats.refetch();
   });
 
-  const seatsById = new Map(seats.data.map((seat) => [seat.id, seat]));
+  const seatsById = new Map(liveSeats.map((seat) => [seat.id, seat]));
   const tiersById = new Map(event.tiers.map((tier) => [tier.id, tier]));
   const chosen = [...selectedIds]
     .map((id) => seatsById.get(id))
@@ -147,7 +205,7 @@ export function ReservedBooking({ event, initialSeats, onSale }: ReservedBooking
       )}
 
       <SeatMap
-        seats={seats.data}
+        seats={liveSeats}
         tiers={event.tiers}
         selectedIds={selectedIds}
         {...(onSale && !pendingOrderId && { onSeatToggle })}

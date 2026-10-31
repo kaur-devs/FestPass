@@ -26,12 +26,12 @@ See [ADR-0001](decisions/0001-monorepo.md).
 
 ## Backend (`apps/api`)
 
-| Tool                      | Why                                                                      | Alternatives considered |
-| ------------------------- | ------------------------------------------------------------------------ | ----------------------- |
-| Express                   | Mature, well understood, explicit middleware chain                       | Fastify, NestJS         |
-| Zod                       | Runtime validation of requests and environment config                    | Joi, class-validator    |
-| Pino                      | Fast structured JSON logging with request IDs                            | Winston                 |
-| Socket.IO + Redis adapter | Rooms per event, reconnection, and fan-out across multiple API instances | ws                      |
+| Tool                                  | Why                                                                                         | Alternatives considered |
+| ------------------------------------- | ------------------------------------------------------------------------------------------- | ----------------------- |
+| Express                               | Mature, well understood, explicit middleware chain                                          | Fastify, NestJS         |
+| Zod                                   | Runtime validation of requests and environment config                                       | Joi, class-validator    |
+| Pino                                  | Fast structured JSON logging with request IDs                                               | Winston                 |
+| Socket.IO + Redis adapter and emitter | Rooms per event, reconnection, fan-out across API instances, and broadcasts from the worker | ws, Server-Sent Events  |
 
 See [ADR-0002](decisions/0002-separate-express-api.md).
 
@@ -48,11 +48,11 @@ Auth.js and Passport were rejected because the session model (rotating refresh t
 
 ## Data
 
-| Tool            | Why                                                                                                                | Alternatives considered                       |
-| --------------- | ------------------------------------------------------------------------------------------------------------------ | --------------------------------------------- |
-| PostgreSQL      | Transactions, row locks and constraints are required to prevent double booking                                     | MongoDB                                       |
-| Prisma          | Type-safe queries, migrations and seeding; raw SQL where locking needs it                                          | Drizzle, TypeORM                              |
-| Redis (ioredis) | Seat holds with per-field TTL and Lua scripts, shared rate limits (`rate-limit-redis`), later BullMQ and Socket.IO | Memcached (no scripting, no per-field expiry) |
+| Tool            | Why                                                                                                                      | Alternatives considered                       |
+| --------------- | ------------------------------------------------------------------------------------------------------------------------ | --------------------------------------------- |
+| PostgreSQL      | Transactions, row locks and constraints are required to prevent double booking                                           | MongoDB                                       |
+| Prisma          | Type-safe queries, migrations and seeding; raw SQL where locking needs it                                                | Drizzle, TypeORM                              |
+| Redis (ioredis) | Seat holds with per-field TTL and Lua scripts, shared rate limits (`rate-limit-redis`), BullMQ queues, Socket.IO pub/sub | Memcached (no scripting, no per-field expiry) |
 
 See [ADR-0003](decisions/0003-postgres-prisma.md) and [ADR-0004](decisions/0004-seat-holds.md).
 

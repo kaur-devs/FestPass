@@ -6,6 +6,7 @@ import type { EmailMessage, EmailSender } from '../lib/email';
 import { type AuthRateLimits, DEFAULT_AUTH_RATE_LIMITS } from '../modules/auth/auth.routes';
 import type { GoogleAuthProvider, GoogleProfile } from '../modules/auth/google';
 import type { TicketDelivery } from '../jobs/queues';
+import type { RealtimePublisher } from '../modules/realtime/publisher';
 import type { PaymentGateway } from '../modules/payments/razorpay.gateway';
 import { db } from './database';
 import { redis } from './redis';
@@ -77,6 +78,7 @@ export function createTestContext(
     authRateLimits?: Partial<AuthRateLimits>;
     paymentGateway?: PaymentGateway;
     ticketDelivery?: TicketDelivery;
+    realtime?: RealtimePublisher;
   } = {},
 ) {
   const emails = new InMemoryEmailSender();
@@ -90,6 +92,7 @@ export function createTestContext(
     google,
     paymentGateway: options.paymentGateway,
     ticketDelivery: options.ticketDelivery,
+    realtime: options.realtime,
     authRateLimits: { ...DEFAULT_AUTH_RATE_LIMITS, ...options.authRateLimits },
   });
   return { app, db, redis, emails, google };

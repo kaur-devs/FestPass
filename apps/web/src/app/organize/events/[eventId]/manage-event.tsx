@@ -10,6 +10,7 @@ import { ApiError } from '@/lib/api';
 import { errorMessage } from '@/lib/forms';
 import { manageApi, useEventMutation, useManagedEvent } from '@/lib/manage';
 import { EventDetailsForm } from '../../event-details-form';
+import { SalesPanel } from './sales-panel';
 import { SeatMapEditor } from './seat-map-editor';
 import { TierEditor } from './tier-editor';
 
@@ -175,7 +176,11 @@ export function ManageEvent({ eventId }: { eventId: string }) {
         )}
       </div>
 
-      {event.status === 'DRAFT' && <PublishChecklist event={event} />}
+      {event.status === 'DRAFT' ? (
+        <PublishChecklist event={event} />
+      ) : (
+        <SalesPanel eventId={event.id} />
+      )}
 
       <div className="grid gap-6 lg:grid-cols-2">
         <EventDetailsPanel event={event} />

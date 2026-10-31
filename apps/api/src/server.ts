@@ -11,6 +11,8 @@ import {
 import { createLogger } from './lib/logger';
 import { createRedis } from './lib/redis';
 import { ArcticGoogleAuthProvider } from './modules/auth/google';
+import { createRealtimePublisher } from './modules/realtime/create-publisher';
+import { attachRealtime } from './modules/realtime/socket-server';
 
 const SHUTDOWN_TIMEOUT_MS = 10_000;
 
@@ -38,6 +40,7 @@ const app = createApp({
   redis,
   emailSender: new QueuedEmailSender(queues.email),
   ticketDelivery: new QueuedTicketDelivery(queues.tickets),
+  realtime: createRealtimePublisher(db, redis, logger),
   google,
   paymentGateway,
 });
@@ -53,13 +56,16 @@ const server = app.listen(env.PORT, (error) => {
   );
 });
 
+const realtime = attachRealtime(server, {
+  webOrigin: env.WEB_ORIGIN,
+  jwtSecret: env.JWT_SECRET,
+  db,
+  redis,
+  logger,
+});
+
 onShutdown(logger, SHUTDOWN_TIMEOUT_MS, async () => {
-  await new Promise<void>((resolve, reject) => {
-    server.close((error) => {
-      if (error) reject(error);
-      else resolve();
-    });
-  });
+  await realtime.close();
   await Promise.allSettled([queues.close(), db.$disconnect()]);
   await Promise.allSettled([redis.quit(), queueConnection.quit()]);
 });
