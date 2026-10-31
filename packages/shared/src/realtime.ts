@@ -39,6 +39,7 @@ export interface SalesUpdatedMessage {
 export interface EventSalesStats {
   eventId: string;
   ticketsSold: number;
+  ticketsCheckedIn: number;
   revenueInPaise: number;
   checkoutsInProgress: number;
   tiers: {

@@ -109,6 +109,7 @@ export class EventManagementService {
     return {
       eventId,
       ticketsSold: [...sold.values()].reduce((sum, count) => sum + count, 0),
+      ticketsCheckedIn: figures.checkedIn,
       revenueInPaise: [...revenue.values()].reduce((sum, amount) => sum + amount, 0),
       checkoutsInProgress: figures.checkoutsInProgress,
       tiers: figures.tiers.map((tier) => ({

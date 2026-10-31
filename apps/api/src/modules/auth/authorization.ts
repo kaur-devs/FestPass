@@ -1,7 +1,7 @@
 import { OrganizationRole, PlatformRole, type PrismaClient } from '@festpass/db';
 import { ForbiddenError } from '../../lib/errors';
 
-const MANAGING_ROLES = [OrganizationRole.OWNER, OrganizationRole.ORGANIZER];
+export const MANAGING_ROLES = [OrganizationRole.OWNER, OrganizationRole.ORGANIZER];
 
 export class AuthorizationService {
   constructor(private readonly db: PrismaClient) {}

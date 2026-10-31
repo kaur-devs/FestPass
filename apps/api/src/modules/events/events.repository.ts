@@ -65,7 +65,7 @@ export class EventsRepository {
   }
 
   async salesFigures(eventId: string, now: Date) {
-    const [tiers, ticketsByTier, revenueByTier, checkoutsInProgress, recentOrders] =
+    const [tiers, ticketsByTier, revenueByTier, checkoutsInProgress, recentOrders, checkedIn] =
       await Promise.all([
         this.db.ticketTier.findMany({
           where: { eventId },
@@ -91,8 +91,9 @@ export class EventsRepository {
           orderBy: { paidAt: 'desc' },
           take: 8,
         }),
+        this.db.checkIn.count({ where: { eventId } }),
       ]);
-    return { tiers, ticketsByTier, revenueByTier, checkoutsInProgress, recentOrders };
+    return { tiers, ticketsByTier, revenueByTier, checkoutsInProgress, recentOrders, checkedIn };
   }
 
   countActiveTickets(eventId: string) {

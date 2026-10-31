@@ -15,6 +15,7 @@ An ADR records one significant decision: the context, the options, what was chos
 | [0009](0009-payment-confirmation.md)         | Confirm payments from the browser, the webhook and reconciliation     | Accepted                  |
 | [0010](0010-worker-entry-point.md)           | Run the worker as a second entry point of the API codebase            | Accepted                  |
 | [0011](0011-realtime-state-messages.md)      | Push current state, not change events, over Socket.IO                 | Accepted                  |
+| [0012](0012-offline-check-in.md)             | Offline check-in from a downloaded guest list                         | Accepted                  |
 
 ## Template
 

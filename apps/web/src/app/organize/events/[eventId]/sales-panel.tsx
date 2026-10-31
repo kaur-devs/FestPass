@@ -57,13 +57,17 @@ export function SalesPanel({ eventId }: { eventId: string }) {
       {stats.isError && <Alert tone="danger">{errorMessage(stats.error)}</Alert>}
       {stats.data && (
         <>
-          <div className="grid grid-cols-2 gap-6 md:grid-cols-3">
+          <div className="grid grid-cols-2 gap-6 md:grid-cols-4">
             <Figure label="Tickets sold" value={stats.data.ticketsSold.toLocaleString('en-IN')} />
             <Figure
               label="Revenue"
               value={formatPrice(stats.data.revenueInPaise).replace('Free', '₹0')}
             />
             <Figure label="Checking out now" value={String(stats.data.checkoutsInProgress)} />
+            <Figure
+              label="Checked in"
+              value={`${stats.data.ticketsCheckedIn.toLocaleString('en-IN')} / ${stats.data.ticketsSold.toLocaleString('en-IN')}`}
+            />
           </div>
 
           <ul className="flex flex-col gap-3">

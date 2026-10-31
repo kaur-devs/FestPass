@@ -84,9 +84,9 @@ Key rules:
 ## Core flow: check-in
 
 1. The ticket QR encodes the ticket ID plus an HMAC signature, so a forged code is rejected without a database lookup.
-2. The volunteer app verifies the signature and calls `POST /checkins`.
-3. A unique constraint on `checkins.ticket_id` makes the second scan of the same ticket fail.
-4. Offline, scans are queued in IndexedDB and synced on reconnect; conflicts (the same ticket scanned at two gates) are resolved by the server's unique constraint, and the later scan is reported as a duplicate.
+2. The volunteer app sends each scan to `POST /check-in/events/:id/scans`; the API verifies the signature, because the secret never leaves the server.
+3. A unique constraint on `check_ins.ticket_id` makes the second scan of the same ticket fail, even when two gates scan at the same moment.
+4. Offline, the app checks codes against the event's guest list saved on the phone, queues scans in IndexedDB and syncs on reconnect; the server's unique constraint resolves conflicts, and the later scan is reported as a duplicate. See [ADR-0012](decisions/0012-offline-check-in.md).
 
 ## Scaling
 

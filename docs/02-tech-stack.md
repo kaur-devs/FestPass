@@ -16,13 +16,16 @@ See [ADR-0001](decisions/0001-monorepo.md).
 
 ## Frontend (`apps/web`)
 
-| Tool                     | Why                                                                                                       | Alternatives considered   |
-| ------------------------ | --------------------------------------------------------------------------------------------------------- | ------------------------- |
-| Next.js (App Router)     | Server rendering for public event pages (SEO, fast first load); client components for interactive booking | Vite + React SPA (no SSR) |
-| Tailwind CSS + shadcn/ui | Accessible components that are owned in the repo, not a black-box library                                 | MUI, Chakra               |
-| TanStack Query           | Server-state caching, invalidation and optimistic updates                                                 | Redux Toolkit Query, SWR  |
-| React Hook Form + Zod    | Performant forms with validation schemas shared with the API                                              | Formik                    |
-| Socket.IO client         | Live seat map and dashboards                                                                              | Native WebSocket          |
+| Tool                                | Why                                                                                                       | Alternatives considered                                  |
+| ----------------------------------- | --------------------------------------------------------------------------------------------------------- | -------------------------------------------------------- |
+| Next.js (App Router)                | Server rendering for public event pages (SEO, fast first load); client components for interactive booking | Vite + React SPA (no SSR)                                |
+| Tailwind CSS + shadcn/ui            | Accessible components that are owned in the repo, not a black-box library                                 | MUI, Chakra                                              |
+| TanStack Query                      | Server-state caching, invalidation and optimistic updates                                                 | Redux Toolkit Query, SWR                                 |
+| React Hook Form + Zod               | Performant forms with validation schemas shared with the API                                              | Formik                                                   |
+| Socket.IO client                    | Live seat map and dashboards                                                                              | Native WebSocket                                         |
+| PWA (web manifest + service worker) | Volunteers install the scanner to the home screen and it opens without a network                          | Native app (needs app store releases)                    |
+| idb-keyval (IndexedDB)              | Guest list and offline scan queue survive the app being closed; a tiny promise wrapper                    | localStorage (small, blocking), Dexie (more than needed) |
+| BarcodeDetector + jsQR              | Native QR detection where the browser has it, pure-JavaScript fallback for iOS Safari                     | zxing-wasm (needs a WebAssembly download), html5-qrcode  |
 
 ## Backend (`apps/api`)
 

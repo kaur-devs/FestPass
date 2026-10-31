@@ -19,10 +19,12 @@ export function manageRoom(eventId: string) {
 
 export interface RealtimePublisher {
   eventChanged(eventId: string, seatIds?: readonly string[]): Promise<void>;
+  checkInsChanged(eventId: string): void;
 }
 
 export const silentPublisher: RealtimePublisher = {
   eventChanged: () => Promise.resolve(),
+  checkInsChanged: () => undefined,
 };
 
 export class EmitterPublisher implements RealtimePublisher {
@@ -54,6 +56,18 @@ export class EmitterPublisher implements RealtimePublisher {
           available: tier.capacity === null ? 0 : Math.max(tier.capacity - tier.soldCount, 0),
         })),
       } satisfies TiersUpdatedMessage);
+      this.notifyManagers(eventId);
+    } catch (error) {
+      this.logger.error({ err: error, eventId }, 'Failed to publish realtime update');
+    }
+  }
+
+  checkInsChanged(eventId: string): void {
+    this.notifyManagers(eventId);
+  }
+
+  private notifyManagers(eventId: string): void {
+    try {
       this.emitter
         .to(manageRoom(eventId))
         .emit(RealtimeMessage.SalesUpdated, { eventId } satisfies SalesUpdatedMessage);

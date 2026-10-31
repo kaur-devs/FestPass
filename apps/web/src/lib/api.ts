@@ -52,12 +52,18 @@ function refreshSession(): Promise<boolean> {
 interface RequestOptions {
   method?: 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE';
   body?: unknown;
+  signal?: AbortSignal;
 }
 
-async function send(path: string, { method = 'GET', body }: RequestOptions, canRefresh: boolean) {
+async function send(
+  path: string,
+  { method = 'GET', body, signal }: RequestOptions,
+  canRefresh: boolean,
+) {
   const res = await fetch(`${API_URL}${path}`, {
     method,
     credentials: 'include',
+    signal,
     ...(body !== undefined && {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(body),
@@ -65,7 +71,7 @@ async function send(path: string, { method = 'GET', body }: RequestOptions, canR
   });
 
   if (res.status === 401 && canRefresh && !path.startsWith('/auth/') && (await refreshSession())) {
-    return send(path, { method, body }, false);
+    return send(path, { method, body, signal }, false);
   }
   if (!res.ok) throw await toApiError(res);
   return res;

@@ -2,6 +2,7 @@
 
 import type { CurrentUser } from '@festpass/shared';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
+import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import type { ReactNode } from 'react';
 import { Alert } from '@/components/ui/alert';
@@ -135,9 +136,19 @@ function AccountDetails({ user }: { user: CurrentUser }) {
         ) : (
           <ul className="divide-y divide-line">
             {user.volunteering.map((assignment) => (
-              <li key={assignment.eventId} className="flex justify-between py-2 text-sm">
-                <span>{assignment.eventTitle}</span>
-                <span className="font-mono text-ink-muted">{assignment.gate ?? 'Any gate'}</span>
+              <li key={assignment.eventId}>
+                <Link
+                  href={`/check-in/${assignment.eventId}`}
+                  className="flex justify-between gap-4 py-2 text-sm hover:text-accent-text"
+                >
+                  <span>{assignment.eventTitle}</span>
+                  <span className="flex gap-3">
+                    <span className="font-mono text-ink-muted">
+                      {assignment.gate ?? 'Any gate'}
+                    </span>
+                    <span className="font-medium underline">Open scanner</span>
+                  </span>
+                </Link>
               </li>
             ))}
           </ul>

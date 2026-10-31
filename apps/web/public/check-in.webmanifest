@@ -1,0 +1,23 @@
+{
+  "name": "FestPass Gate",
+  "short_name": "FP Gate",
+  "description": "Scan FestPass tickets at the gate, even with a weak connection.",
+  "id": "/check-in",
+  "start_url": "/check-in",
+  "scope": "/check-in",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#faf7f2",
+  "theme_color": "#1a1714",
+  "icons": [
+    { "src": "/icons/gate-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "/icons/gate-512.png", "sizes": "512x512", "type": "image/png" },
+    {
+      "src": "/icons/gate-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    },
+    { "src": "/icons/gate.svg", "sizes": "any", "type": "image/svg+xml" }
+  ]
+}

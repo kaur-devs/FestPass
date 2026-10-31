@@ -13,6 +13,7 @@ import { EventDetailsForm } from '../../event-details-form';
 import { SalesPanel } from './sales-panel';
 import { SeatMapEditor } from './seat-map-editor';
 import { TierEditor } from './tier-editor';
+import { VolunteersPanel } from './volunteers-panel';
 
 function Panel({
   title,
@@ -181,6 +182,8 @@ export function ManageEvent({ eventId }: { eventId: string }) {
       ) : (
         <SalesPanel eventId={event.id} />
       )}
+
+      {event.status === 'PUBLISHED' && <VolunteersPanel eventId={event.id} />}
 
       <div className="grid gap-6 lg:grid-cols-2">
         <EventDetailsPanel event={event} />

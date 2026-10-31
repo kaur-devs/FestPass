@@ -77,6 +77,12 @@ export function formatEventDate(instant: Date | string, timeZone: string): strin
   return `${day} · ${time}`;
 }
 
+export function formatClockTime(instant: Date | string, timeZone: string): string {
+  return new Intl.DateTimeFormat('en-US', { timeZone, hour: 'numeric', minute: '2-digit' }).format(
+    new Date(instant),
+  );
+}
+
 export function formatPrice(paise: number): string {
   if (paise === 0) return 'Free';
   return new Intl.NumberFormat('en-IN', {

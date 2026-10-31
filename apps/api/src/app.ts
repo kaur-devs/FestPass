@@ -23,6 +23,11 @@ import {
 } from './modules/auth/auth.routes';
 import { AuthService } from './modules/auth/auth.service';
 import { AuthorizationService } from './modules/auth/authorization';
+import { CheckInController } from './modules/checkin/checkin.controller';
+import { CheckInRepository } from './modules/checkin/checkin.repository';
+import { createCheckInRouter } from './modules/checkin/checkin.routes';
+import { CheckInService } from './modules/checkin/checkin.service';
+import { VolunteersService } from './modules/checkin/volunteers.service';
 import type { GoogleAuthProvider } from './modules/auth/google';
 import { EventCatalogService } from './modules/events/event-catalog.service';
 import { EventManagementService } from './modules/events/event-management.service';
@@ -121,6 +126,12 @@ export function createApp({
     new PaymentsService(new PaymentsRepository(db), ordersService, paymentGateway, logger),
   );
 
+  const checkInRepository = new CheckInRepository(db);
+  const checkInController = new CheckInController(
+    new CheckInService(checkInRepository, authorization, ticketCodes, realtime),
+    new VolunteersService(checkInRepository, authorization),
+  );
+
   const app = express();
   app.set('trust proxy', env.TRUST_PROXY);
 
@@ -138,6 +149,7 @@ export function createApp({
   app.use(createEventsRouter(eventsController, authenticate));
   app.use(createOrdersRouter(ordersController, authenticate, rateLimiter));
   app.use(createPaymentsRouter(paymentsController, authenticate, rateLimiter));
+  app.use(createCheckInRouter(checkInController, authenticate, rateLimiter));
 
   app.use(notFoundHandler);
   app.use(errorHandler);

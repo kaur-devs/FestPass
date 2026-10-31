@@ -6,3 +6,4 @@ export * from './seat-map';
 export * from './orders';
 export * from './payments';
 export * from './realtime';
+export * from './checkin';
