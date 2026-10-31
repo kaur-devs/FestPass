@@ -37,6 +37,10 @@ export function typescript({ tsconfigRootDir }) {
       },
     },
     {
+      files: ['**/*.test.ts', '**/*.test.tsx'],
+      rules: { '@typescript-eslint/no-unnecessary-type-parameters': 'off' },
+    },
+    {
       files: ['**/*.js', '**/*.mjs', '**/*.cjs'],
       ...tseslint.configs.disableTypeChecked,
     },

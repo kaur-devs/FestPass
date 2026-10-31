@@ -1,2 +1,7 @@
 export * from './api-error';
 export * from './auth';
+export * from './events';
+export * from './time';
+export * from './seat-map';
+export * from './orders';
+export * from './payments';

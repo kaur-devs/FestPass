@@ -277,6 +277,8 @@ model Order {
   idempotencyKey    String      @map("idempotency_key")
   razorpayOrderId   String?     @unique @map("razorpay_order_id")
   razorpayPaymentId String?     @unique @map("razorpay_payment_id")
+  razorpayRefundId  String?     @unique @map("razorpay_refund_id")
+  refundedAt        DateTime?   @map("refunded_at") @db.Timestamptz(3)
   expiresAt         DateTime    @map("expires_at") @db.Timestamptz(3)
   paidAt            DateTime?   @map("paid_at") @db.Timestamptz(3)
   createdAt         DateTime    @default(now()) @map("created_at") @db.Timestamptz(3)
@@ -355,4 +357,12 @@ model CheckIn {
   @@unique([ticketId, eventId])
   @@index([eventId, createdAt])
   @@map("check_ins")
+}
+
+model PaymentWebhookEvent {
+  id         String   @id
+  event      String
+  receivedAt DateTime @default(now()) @map("received_at") @db.Timestamptz(3)
+
+  @@map("payment_webhook_events")
 }

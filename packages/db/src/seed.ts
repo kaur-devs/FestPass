@@ -162,7 +162,16 @@ async function seedProNight(db: PrismaClient, organizationId: string) {
     if (row <= 'H') return gold.id;
     return silver.id;
   };
-  await db.seat.createMany({ data: auditoriumSeats(event.id, tierForRow) });
+  const seats = auditoriumSeats(event.id, tierForRow);
+  await db.seat.createMany({ data: seats });
+  await Promise.all(
+    [platinum, gold, silver].map((tier) =>
+      db.ticketTier.update({
+        where: { id: tier.id },
+        data: { capacity: seats.filter((seat) => seat.tierId === tier.id).length },
+      }),
+    ),
+  );
 
   return { eventId: event.id, platinumId: platinum.id, goldId: gold.id };
 }
@@ -363,6 +372,10 @@ async function seedPendingOrder(
       expiresAt: new Date(Date.now() + 5 * 60_000),
       items: { create: { tierId: bands.earlyBirdId, quantity: 2, unitPriceInPaise: 14_900 } },
     },
+  });
+  await db.ticketTier.update({
+    where: { id: bands.earlyBirdId },
+    data: { soldCount: { increment: 2 } },
   });
 }
 

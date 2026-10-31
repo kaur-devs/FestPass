@@ -24,7 +24,7 @@
     },
     "test": {
       "dependsOn": ["^generate", "generate"],
-      "env": ["TEST_DATABASE_SERVER_URL"],
+      "env": ["TEST_DATABASE_SERVER_URL", "TEST_REDIS_URL"],
       "outputs": []
     }
   }
