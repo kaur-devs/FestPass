@@ -11,7 +11,7 @@ Architecture, design decisions and feature write-ups live in [`docs/`](docs/READ
 | Path              | Contents                                    |
 | ----------------- | ------------------------------------------- |
 | `apps/web`        | Next.js frontend                            |
-| `apps/api`        | Express API                                 |
+| `apps/api`        | Express API and background worker           |
 | `packages/db`     | Prisma schema, migrations, seed data        |
 | `packages/shared` | Zod schemas and types shared by web and api |
 | `packages/config` | Shared TypeScript and ESLint configuration  |
@@ -40,13 +40,13 @@ Port 5433 avoids clashing with a locally installed Postgres on 5432.
 
 Seeded accounts use the `@festpass.test` domain and the password `festpass-dev-password`, for example `riya@festpass.test` (organizer), `kabir@festpass.test` (volunteer) and `ananya@festpass.test` (student).
 
-Without an email provider, the API logs emails (verification and reset links) to its console. Set `JWT_SECRET` in `apps/api/.env` to the output of `openssl rand -base64 48`. Google sign-in is optional: set `GOOGLE_CLIENT_ID` and `GOOGLE_CLIENT_SECRET` with the redirect URI `http://localhost:4000/auth/google/callback`.
+Without an email provider, the worker logs emails (verification and reset links) to its console. `apps/api/.env` needs `REDIS_URL` (see `.env.example`). Set `JWT_SECRET` and `TICKET_SIGNING_SECRET` to two different outputs of `openssl rand -base64 48`. To deliver email instead of logging it, set `RESEND_API_KEY` and `EMAIL_FROM`. Payments are optional locally: without Razorpay keys, paid checkouts show that payment is not set up. See [Setting up Razorpay](docs/features/payments.md#setting-up-razorpay-test-mode). Google sign-in is optional: set `GOOGLE_CLIENT_ID` and `GOOGLE_CLIENT_SECRET` with the redirect URI `http://localhost:4000/auth/google/callback`.
 
 ## Scripts
 
 | Command                                                     | Does                                                      |
 | ----------------------------------------------------------- | --------------------------------------------------------- |
-| `pnpm dev`                                                  | Runs all apps in watch mode                               |
+| `pnpm dev`                                                  | Runs the web app, the API and the worker in watch mode    |
 | `pnpm check`                                                | Lint, typecheck, test and build everything (what CI runs) |
 | `pnpm lint` / `pnpm typecheck` / `pnpm test` / `pnpm build` | Each step on its own                                      |
 | `pnpm format`                                               | Formats the repository with Prettier                      |

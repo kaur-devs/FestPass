@@ -8,11 +8,10 @@ Code structure and conventions that apply across the codebase. Feature-specific 
 festpass/
 ├── apps/
 │   ├── web/        Next.js frontend
-│   ├── api/        Express API + Socket.IO
-│   └── worker/     BullMQ workers
+│   └── api/        Express API (src/server.ts) and BullMQ worker (src/worker.ts)
 ├── packages/
 │   ├── db/         Prisma schema, migrations, seed, client
-│   ├── shared/     Zod schemas and types shared by web, api and worker
+│   ├── shared/     Zod schemas, types and helpers shared by web and api
 │   └── config/     Shared tsconfig, ESLint and Prettier presets
 └── docs/
 ```

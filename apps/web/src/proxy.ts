@@ -1,7 +1,7 @@
 import { type NextRequest, NextResponse } from 'next/server';
 
 const SIGNED_IN_COOKIE = 'fp_signed_in';
-const PROTECTED_PREFIXES = ['/account'];
+const PROTECTED_PREFIXES = ['/account', '/organize', '/orders'];
 const GUEST_ONLY_PATHS = ['/sign-in', '/sign-up'];
 
 export function proxy(request: NextRequest) {
@@ -22,5 +22,5 @@ export function proxy(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ['/account/:path*', '/sign-in', '/sign-up'],
+  matcher: ['/account/:path*', '/organize/:path*', '/orders/:path*', '/sign-in', '/sign-up'],
 };

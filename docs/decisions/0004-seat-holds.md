@@ -1,7 +1,7 @@
 # ADR-0004: Redis holds with Postgres as the final arbiter for seats
 
-- Status: Proposed
-- Date: 2026-10-25
+- Status: Accepted
+- Date: 2026-10-25 (accepted 2026-10-26, when booking was built)
 
 ## Context
 
@@ -17,8 +17,8 @@ When tickets go on sale, many students try to book the same seats within seconds
 
 Option 3.
 
-- A hold is `SET hold:{eventId}:{seatId} {userId} NX EX 300`. `NX` means only the first request wins; `EX` releases the seat after five minutes without a cleanup job.
-- The sale runs in a Postgres transaction that locks the seat row with `SELECT ... FOR UPDATE`, checks it is unsold, marks it sold and creates the ticket.
+- Holds live in one Redis hash per event (`{event:<id>}:held`, seat ID to user ID) with a per-field expiry (Redis 7.4 `HPEXPIRE`), so every held seat of an event is read with one `HKEYS`. A Lua script checks and claims all requested seats at once, so a multi-seat hold is all-or-nothing and only the first of many simultaneous requests wins.
+- Checkout extends the hold to the 10-minute checkout window and creates a pending order. The sale runs in a Postgres transaction that locks the order row, creates the tickets and marks the order paid.
 - A unique constraint on the seat's active ticket is the last line of defence.
 
 ## Consequences

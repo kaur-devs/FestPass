@@ -20,3 +20,26 @@ export function applyServerErrors<T extends FieldValues>(
   }
   return matchedField ? undefined : error.message;
 }
+
+export interface SchemaIssue {
+  path: readonly PropertyKey[];
+  message: string;
+}
+
+export function applySchemaIssues<T extends FieldValues>(
+  issues: readonly SchemaIssue[],
+  setError: UseFormSetError<T>,
+  fields: readonly Path<T>[],
+): string | undefined {
+  let unmatched: string | undefined;
+  for (const issue of issues) {
+    const field = fields.find((name) => name === issue.path.map(String).join('.'));
+    if (field) setError(field, { type: 'validate', message: issue.message });
+    else unmatched ??= issue.message;
+  }
+  return unmatched;
+}
+
+export function errorMessage(error: unknown): string {
+  return error instanceof ApiError ? error.message : FALLBACK_MESSAGE;
+}

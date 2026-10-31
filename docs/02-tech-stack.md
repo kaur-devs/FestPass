@@ -48,28 +48,31 @@ Auth.js and Passport were rejected because the session model (rotating refresh t
 
 ## Data
 
-| Tool       | Why                                                                            | Alternatives considered |
-| ---------- | ------------------------------------------------------------------------------ | ----------------------- |
-| PostgreSQL | Transactions, row locks and constraints are required to prevent double booking | MongoDB                 |
-| Prisma     | Type-safe queries, migrations and seeding; raw SQL where locking needs it      | Drizzle, TypeORM        |
-| Redis      | Seat holds with TTL, caching, rate limiting, BullMQ backend, Socket.IO adapter | Memcached (cache only)  |
+| Tool            | Why                                                                                                                | Alternatives considered                       |
+| --------------- | ------------------------------------------------------------------------------------------------------------------ | --------------------------------------------- |
+| PostgreSQL      | Transactions, row locks and constraints are required to prevent double booking                                     | MongoDB                                       |
+| Prisma          | Type-safe queries, migrations and seeding; raw SQL where locking needs it                                          | Drizzle, TypeORM                              |
+| Redis (ioredis) | Seat holds with per-field TTL and Lua scripts, shared rate limits (`rate-limit-redis`), later BullMQ and Socket.IO | Memcached (no scripting, no per-field expiry) |
 
 See [ADR-0003](decisions/0003-postgres-prisma.md) and [ADR-0004](decisions/0004-seat-holds.md).
 
-## Background work (`apps/worker`)
+## Background work (worker process of `apps/api`)
 
-| Tool   | Why                                                                      | Alternatives considered                        |
-| ------ | ------------------------------------------------------------------------ | ---------------------------------------------- |
-| BullMQ | Redis-backed jobs with retries, backoff, delays and dead-letter handling | RabbitMQ, Kafka (both too heavy at this scale) |
+| Tool                       | Why                                                                                             | Alternatives considered                        |
+| -------------------------- | ----------------------------------------------------------------------------------------------- | ---------------------------------------------- |
+| BullMQ                     | Redis-backed jobs with retries, exponential backoff, deduplication by job ID and job schedulers | RabbitMQ, Kafka (both too heavy at this scale) |
+| PDFKit                     | Draws ticket PDFs directly, no headless browser needed                                          | Puppeteer (heavy), react-pdf                   |
+| `qrcode`                   | QR codes as PNG for PDFs and as a module grid for the web                                       | Third-party QR APIs (leak ticket codes)        |
+| Big Shoulders (Fontsource) | The design system's display font, embedded in PDFs                                              | Built-in PDF fonts                             |
 
-Jobs: ticket PDF and QR generation, emails, hold expiry follow-ups, waitlist notifications.
+Jobs: ticket emails with PDF attachments, all other email, checkout expiry with payment reconciliation, refunds. See [ADR-0010](decisions/0010-worker-entry-point.md).
 
 ## Integrations
 
 | Service               | Purpose                                                       |
 | --------------------- | ------------------------------------------------------------- |
 | Razorpay (test mode)  | Payments; webhooks are the source of truth for payment status |
-| Resend                | Transactional email                                           |
+| Resend                | Transactional email with attachments and idempotency keys     |
 | S3-compatible storage | Ticket PDFs and event images                                  |
 | Google OAuth          | Social sign-in                                                |
 

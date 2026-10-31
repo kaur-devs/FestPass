@@ -31,13 +31,13 @@ flowchart LR
 
 ## Components
 
-| Component  | Responsibility                                                              | State                                           |
-| ---------- | --------------------------------------------------------------------------- | ----------------------------------------------- |
-| `web`      | Public event pages (server rendered), booking UI, dashboards, check-in PWA  | Stateless                                       |
-| `api`      | REST endpoints, auth, business rules, payment webhooks, WebSocket rooms     | Stateless; all state in Postgres and Redis      |
-| `worker`   | Slow or retryable work: ticket PDFs, QR codes, emails                       | Stateless; jobs live in Redis                   |
-| PostgreSQL | Source of truth: users, events, seats, orders, tickets, check-ins           | Durable                                         |
-| Redis      | Seat holds (TTL), cache, rate-limit counters, job queues, Socket.IO pub/sub | Ephemeral; losing it must not lose sold tickets |
+| Component  | Responsibility                                                                                                          | State                                           |
+| ---------- | ----------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------- |
+| `web`      | Public event pages (server rendered), booking UI, dashboards, check-in PWA                                              | Stateless                                       |
+| `api`      | REST endpoints, auth, business rules, payment webhooks, WebSocket rooms                                                 | Stateless; all state in Postgres and Redis      |
+| `worker`   | Second process of the API codebase: ticket PDFs and emails, all email, checkout expiry, payment reconciliation, refunds | Stateless; jobs live in Redis                   |
+| PostgreSQL | Source of truth: users, events, seats, orders, tickets, check-ins                                                       | Durable                                         |
+| Redis      | Seat holds (TTL), cache, rate-limit counters, job queues, Socket.IO pub/sub                                             | Ephemeral; losing it must not lose sold tickets |
 
 ## Core flow: booking a seat
 

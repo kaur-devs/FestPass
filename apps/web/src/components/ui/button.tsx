@@ -4,7 +4,7 @@ import type { ButtonHTMLAttributes } from 'react';
 export type ButtonVariant = 'primary' | 'secondary' | 'ghost' | 'danger';
 
 const base =
-  'inline-flex h-11 items-center justify-center gap-2 rounded-control px-4 text-base font-semibold transition-opacity duration-150 ease-out disabled:cursor-not-allowed disabled:opacity-60';
+  'inline-flex h-11 items-center justify-center gap-2 rounded-control text-base font-semibold transition-opacity duration-150 ease-out disabled:cursor-not-allowed disabled:opacity-60';
 
 const variants: Record<ButtonVariant, string> = {
   primary: 'bg-ink text-paper hover:opacity-90',
@@ -13,18 +13,20 @@ const variants: Record<ButtonVariant, string> = {
   danger: 'border border-danger text-danger hover:bg-line',
 };
 
-export function buttonClasses(variant: ButtonVariant = 'primary', className = '') {
-  return `${base} ${variants[variant]} ${className}`.trim();
+export function buttonClasses(variant: ButtonVariant = 'primary', className = '', square = false) {
+  return `${base} ${square ? 'w-11' : 'px-4'} ${variants[variant]} ${className}`.trim();
 }
 
 interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
   variant?: ButtonVariant;
   pending?: boolean;
+  square?: boolean;
 }
 
 export function Button({
   variant = 'primary',
   pending = false,
+  square = false,
   disabled,
   className,
   children,
@@ -34,7 +36,7 @@ export function Button({
   return (
     <button
       type={type}
-      className={buttonClasses(variant, className)}
+      className={buttonClasses(variant, className, square)}
       disabled={disabled === true || pending}
       aria-busy={pending}
       {...props}

@@ -3,7 +3,7 @@
 import type { CurrentUser } from '@festpass/shared';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useRouter } from 'next/navigation';
-import { type ReactNode, useEffect } from 'react';
+import type { ReactNode } from 'react';
 import { Alert } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import { ApiError } from '@/lib/api';
@@ -152,13 +152,8 @@ function AccountDetails({ user }: { user: CurrentUser }) {
 }
 
 export function AccountView() {
-  const router = useRouter();
   const { data: user, error, isPending, refetch } = useCurrentUser();
   const signedOut = error instanceof ApiError && error.status === 401;
-
-  useEffect(() => {
-    if (signedOut) router.replace('/sign-in?next=/account');
-  }, [signedOut, router]);
 
   if (isPending || signedOut) return <Skeleton />;
   if (error) {

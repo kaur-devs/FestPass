@@ -13,6 +13,7 @@ export class ApiError extends Error {
     readonly code: string,
     message: string,
     readonly fieldErrors: Partial<Record<string, string[]>> = {},
+    readonly details?: unknown,
   ) {
     super(message);
     this.name = 'ApiError';
@@ -27,7 +28,13 @@ async function toApiError(res: Response): Promise<ApiError> {
   }
   const { code, message, details } = parsed.data.error;
   const fields = fieldErrorsSchema.safeParse(details);
-  return new ApiError(res.status, code, message, fields.success ? fields.data.fieldErrors : {});
+  return new ApiError(
+    res.status,
+    code,
+    message,
+    fields.success ? fields.data.fieldErrors : {},
+    details,
+  );
 }
 
 let refreshInFlight: Promise<boolean> | undefined;
@@ -43,7 +50,7 @@ function refreshSession(): Promise<boolean> {
 }
 
 interface RequestOptions {
-  method?: 'GET' | 'POST' | 'PATCH' | 'DELETE';
+  method?: 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE';
   body?: unknown;
 }
 
