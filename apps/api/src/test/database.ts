@@ -1,8 +1,10 @@
 import { createPrismaClient } from '@festpass/db';
-import { testDatabaseUrl, truncateAll } from '@festpass/db/testing';
-
-export const TEST_DATABASE_URL = testDatabaseUrl('festpass_api_test');
+import { truncateAll } from '@festpass/db/testing';
+import { resetRedis } from './redis';
+import { TEST_DATABASE_URL } from './urls';
 
 export const db = createPrismaClient(TEST_DATABASE_URL);
 
-export const resetDatabase = () => truncateAll(db);
+export async function resetDatabase() {
+  await Promise.all([truncateAll(db), resetRedis()]);
+}

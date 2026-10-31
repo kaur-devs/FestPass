@@ -1,22 +1,26 @@
 import { createPrismaClient } from '@festpass/db';
 import { createApp } from './app';
-import { type Env, parseEnv } from './config/env';
-import { LogEmailSender } from './lib/email';
+import { parseEnv } from './config/env';
+import { loadEnvOrExit, onShutdown, paymentGatewayFrom } from './config/runtime';
+import {
+  createQueueConnection,
+  createQueues,
+  QueuedEmailSender,
+  QueuedTicketDelivery,
+} from './jobs/queues';
 import { createLogger } from './lib/logger';
+import { createRedis } from './lib/redis';
 import { ArcticGoogleAuthProvider } from './modules/auth/google';
 
 const SHUTDOWN_TIMEOUT_MS = 10_000;
 
-let env: Env;
-try {
-  env = parseEnv(process.env);
-} catch (error) {
-  process.stderr.write(`${error instanceof Error ? error.message : String(error)}\n`);
-  process.exit(1);
-}
-
+const env = loadEnvOrExit(() => parseEnv(process.env));
 const logger = createLogger(env);
 const db = createPrismaClient(env.DATABASE_URL);
+const redis = createRedis(env.REDIS_URL);
+const queueConnection = createQueueConnection(env.REDIS_URL);
+const queues = createQueues(queueConnection);
+
 const google =
   env.GOOGLE_CLIENT_ID && env.GOOGLE_CLIENT_SECRET
     ? new ArcticGoogleAuthProvider(
@@ -25,49 +29,37 @@ const google =
         new URL('/auth/google/callback', env.API_ORIGIN).toString(),
       )
     : undefined;
+const paymentGateway = paymentGatewayFrom(env);
 
-const app = createApp({ env, logger, db, emailSender: new LogEmailSender(logger), google });
+const app = createApp({
+  env,
+  logger,
+  db,
+  redis,
+  emailSender: new QueuedEmailSender(queues.email),
+  ticketDelivery: new QueuedTicketDelivery(queues.tickets),
+  google,
+  paymentGateway,
+});
 
 const server = app.listen(env.PORT, (error) => {
   if (error) {
     logger.fatal({ err: error }, 'Failed to start server');
     process.exit(1);
   }
-  logger.info({ port: env.PORT, googleSignIn: Boolean(google) }, 'API listening');
+  logger.info(
+    { port: env.PORT, googleSignIn: Boolean(google), payments: Boolean(paymentGateway) },
+    'API listening',
+  );
 });
 
-let shuttingDown = false;
-
-function shutdown(signal: NodeJS.Signals) {
-  if (shuttingDown) return;
-  shuttingDown = true;
-  logger.info({ signal }, 'Shutting down');
-
-  setTimeout(() => {
-    logger.error('Shutdown timed out, forcing exit');
-    process.exit(1);
-  }, SHUTDOWN_TIMEOUT_MS).unref();
-
-  server.close((error) => {
-    void db.$disconnect().finally(() => {
-      if (error) {
-        logger.error({ err: error }, 'Error while closing server');
-        process.exit(1);
-      }
-      process.exit(0);
+onShutdown(logger, SHUTDOWN_TIMEOUT_MS, async () => {
+  await new Promise<void>((resolve, reject) => {
+    server.close((error) => {
+      if (error) reject(error);
+      else resolve();
     });
   });
-}
-
-process.on('SIGTERM', shutdown);
-process.on('SIGINT', shutdown);
-
-process.on('unhandledRejection', (reason) => {
-  logger.fatal({ err: reason }, 'Unhandled promise rejection');
-  process.exit(1);
-});
-
-process.on('uncaughtException', (error) => {
-  logger.fatal({ err: error }, 'Uncaught exception');
-  process.exit(1);
+  await Promise.allSettled([queues.close(), db.$disconnect()]);
+  await Promise.allSettled([redis.quit(), queueConnection.quit()]);
 });

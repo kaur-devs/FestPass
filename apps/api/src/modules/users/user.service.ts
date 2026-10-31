@@ -1,6 +1,6 @@
 import type { PrismaClient } from '@festpass/db';
 import type { CurrentUser } from '@festpass/shared';
-import { NotFoundError } from '../../lib/errors';
+import { UnauthenticatedError } from '../../lib/errors';
 
 export class UserService {
   constructor(private readonly db: PrismaClient) {}
@@ -16,7 +16,7 @@ export class UserService {
         },
       },
     });
-    if (!user) throw new NotFoundError('This account no longer exists.');
+    if (!user) throw new UnauthenticatedError('This account no longer exists. Sign in again.');
 
     return {
       id: user.id,

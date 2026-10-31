@@ -17,15 +17,39 @@ const envSchema = z
     API_ORIGIN: z.url(),
     WEB_ORIGIN: z.url(),
     DATABASE_URL: z.url(),
+    REDIS_URL: z.url(),
     JWT_SECRET: z.string().min(32, 'Must be at least 32 characters'),
+    TICKET_SIGNING_SECRET: z.string().min(32, 'Must be at least 32 characters'),
     COOKIE_DOMAIN: optionalString,
     GOOGLE_CLIENT_ID: optionalString,
     GOOGLE_CLIENT_SECRET: optionalString,
+    RESEND_API_KEY: optionalString,
+    EMAIL_FROM: optionalString,
+    RAZORPAY_KEY_ID: optionalString,
+    RAZORPAY_KEY_SECRET: optionalString,
+    RAZORPAY_WEBHOOK_SECRET: optionalString,
   })
   .refine((env) => Boolean(env.GOOGLE_CLIENT_ID) === Boolean(env.GOOGLE_CLIENT_SECRET), {
     message: 'Set both GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET, or neither',
     path: ['GOOGLE_CLIENT_SECRET'],
-  });
+  })
+  .refine((env) => !env.RESEND_API_KEY || Boolean(env.EMAIL_FROM), {
+    message: 'Set EMAIL_FROM when RESEND_API_KEY is set',
+    path: ['EMAIL_FROM'],
+  })
+  .refine(
+    (env) =>
+      new Set([
+        Boolean(env.RAZORPAY_KEY_ID),
+        Boolean(env.RAZORPAY_KEY_SECRET),
+        Boolean(env.RAZORPAY_WEBHOOK_SECRET),
+      ]).size === 1,
+    {
+      message:
+        'Set RAZORPAY_KEY_ID, RAZORPAY_KEY_SECRET and RAZORPAY_WEBHOOK_SECRET together, or none',
+      path: ['RAZORPAY_KEY_ID'],
+    },
+  );
 
 export type Env = z.infer<typeof envSchema>;
 

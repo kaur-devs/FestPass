@@ -5,7 +5,11 @@ import type { Env } from '../config/env';
 import type { EmailMessage, EmailSender } from '../lib/email';
 import { type AuthRateLimits, DEFAULT_AUTH_RATE_LIMITS } from '../modules/auth/auth.routes';
 import type { GoogleAuthProvider, GoogleProfile } from '../modules/auth/google';
-import { db, TEST_DATABASE_URL } from './database';
+import type { TicketDelivery } from '../jobs/queues';
+import type { PaymentGateway } from '../modules/payments/razorpay.gateway';
+import { db } from './database';
+import { redis } from './redis';
+import { TEST_DATABASE_URL, TEST_REDIS_URL } from './urls';
 
 export const WEB_ORIGIN = 'http://localhost:3000';
 
@@ -17,10 +21,17 @@ export const testEnv: Env = {
   API_ORIGIN: 'http://localhost:4000',
   WEB_ORIGIN,
   DATABASE_URL: TEST_DATABASE_URL,
+  REDIS_URL: TEST_REDIS_URL,
   JWT_SECRET: 'test-secret-that-is-at-least-32-characters',
+  TICKET_SIGNING_SECRET: 'test-ticket-secret-at-least-32-characters',
   COOKIE_DOMAIN: undefined,
   GOOGLE_CLIENT_ID: undefined,
   GOOGLE_CLIENT_SECRET: undefined,
+  RESEND_API_KEY: undefined,
+  EMAIL_FROM: undefined,
+  RAZORPAY_KEY_ID: undefined,
+  RAZORPAY_KEY_SECRET: undefined,
+  RAZORPAY_WEBHOOK_SECRET: undefined,
 };
 
 export class InMemoryEmailSender implements EmailSender {
@@ -61,18 +72,27 @@ export class FakeGoogleAuthProvider implements GoogleAuthProvider {
   }
 }
 
-export function createTestContext(options: { authRateLimits?: Partial<AuthRateLimits> } = {}) {
+export function createTestContext(
+  options: {
+    authRateLimits?: Partial<AuthRateLimits>;
+    paymentGateway?: PaymentGateway;
+    ticketDelivery?: TicketDelivery;
+  } = {},
+) {
   const emails = new InMemoryEmailSender();
   const google = new FakeGoogleAuthProvider();
   const app = createApp({
     env: testEnv,
     logger: pino({ level: 'silent' }),
     db,
+    redis,
     emailSender: emails,
     google,
+    paymentGateway: options.paymentGateway,
+    ticketDelivery: options.ticketDelivery,
     authRateLimits: { ...DEFAULT_AUTH_RATE_LIMITS, ...options.authRateLimits },
   });
-  return { app, db, emails, google };
+  return { app, db, redis, emails, google };
 }
 
 export function getCookie(res: Response, name: string): string | undefined {

@@ -43,8 +43,8 @@ export class NotFoundError extends AppError {
 }
 
 export class ConflictError extends AppError {
-  constructor(message: string, code: string = ErrorCode.Conflict) {
-    super(409, code, message);
+  constructor(message: string, code: string = ErrorCode.Conflict, details?: unknown) {
+    super(409, code, message, details);
   }
 }
 

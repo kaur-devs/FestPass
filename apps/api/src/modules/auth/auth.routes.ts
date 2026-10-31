@@ -1,6 +1,5 @@
-import { Router } from 'express';
-import { rateLimiter, type RateLimitRule } from '../../middleware/rate-limit';
-import type { RequestHandler } from 'express';
+import { type RequestHandler, Router } from 'express';
+import type { RateLimiterFactory, RateLimitRule } from '../../middleware/rate-limit';
 import type { AuthController } from './auth.controller';
 
 export interface AuthRateLimits {
@@ -19,12 +18,13 @@ export function createAuthRouter(
   controller: AuthController,
   authenticate: RequestHandler,
   limits: AuthRateLimits,
+  rateLimiter: RateLimiterFactory,
 ): Router {
   const router = Router();
-  const emailLimiter = rateLimiter(limits.email);
+  const emailLimiter = rateLimiter('auth-email', limits.email);
 
-  router.post('/auth/sign-up', rateLimiter(limits.signUp), controller.signUp);
-  router.post('/auth/sign-in', rateLimiter(limits.signIn), controller.signIn);
+  router.post('/auth/sign-up', rateLimiter('sign-up', limits.signUp), controller.signUp);
+  router.post('/auth/sign-in', rateLimiter('sign-in', limits.signIn), controller.signIn);
   router.post('/auth/refresh', controller.refresh);
   router.post('/auth/sign-out', controller.signOut);
   router.post('/auth/sign-out-everywhere', authenticate, controller.signOutEverywhere);

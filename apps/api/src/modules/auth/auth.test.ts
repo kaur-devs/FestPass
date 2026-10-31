@@ -153,6 +153,15 @@ describe('sign-in', () => {
 });
 
 describe('protected routes', () => {
+  it('treat a deleted account as signed out', async () => {
+    const { agent } = await signUp();
+    await db.user.deleteMany({ where: { email: riya.email } });
+
+    const res = await agent.get('/me');
+
+    expect(res.status).toBe(401);
+  });
+
   it('require a valid access token', async () => {
     const missing = await request(ctx.app).get('/me');
     const forged = await request(ctx.app).get('/me').set('Cookie', `${ACCESS_TOKEN_COOKIE}=forged`);

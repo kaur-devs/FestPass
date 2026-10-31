@@ -5,7 +5,9 @@ const required = {
   API_ORIGIN: 'http://localhost:4000',
   WEB_ORIGIN: 'http://localhost:3000',
   DATABASE_URL: 'postgresql://festpass:festpass@localhost:5433/festpass',
+  REDIS_URL: 'redis://localhost:6379/0',
   JWT_SECRET: 'x'.repeat(32),
+  TICKET_SIGNING_SECRET: 'y'.repeat(32),
 };
 
 describe('parseEnv', () => {
